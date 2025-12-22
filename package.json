@@ -1,0 +1,18 @@
+{
+    "name": "nova-x",
+    "version": "0.1.0",
+    "description": "AI Theme Architect for WordPress",
+    "author": "OGC NewFinity",
+    "license": "GPL-2.0-or-later",
+    "main": "assets/index.js",
+    "scripts": {
+        "start": "wp-scripts start",
+        "build": "wp-scripts build",
+        "format": "wp-scripts format",
+        "packages-update": "wp-scripts packages-update"
+    },
+    "devDependencies": {
+        "@wordpress/api-fetch": "^7.36.0",
+        "@wordpress/scripts": "^26.0.0"
+    }
+}

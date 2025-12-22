@@ -1,2 +1,15 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Mac OS system files
+.DS_Store
+
+# Editor directories
+.idea/
+.vscode/
+
+# Build assets (Optional: usually we commit these for plugins, but strict devs ignore them)
+# For now, we will NOT ignore assets so you can deploy easily
+*.map

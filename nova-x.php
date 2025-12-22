@@ -1,0 +1,107 @@
+<?php
+/**
+ * Plugin Name: Nova-X | AI Theme Architect
+ * Description: The next-gen AI agent for building WordPress Block Themes via visual chat interface.
+ * Version: 0.1.0
+ * Author: OGC NewFinity
+ * Author URI: https://ogcnewfinity.com
+ * Text Domain: nova-x
+ * Requires at least: 6.2
+ * Requires PHP: 8.0
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+// Define Constants
+define( 'NOVA_X_VERSION', '0.1.0' );
+define( 'NOVA_X_PATH', plugin_dir_path( __FILE__ ) );
+define( 'NOVA_X_URL', plugin_dir_url( __FILE__ ) );
+
+/**
+ * Main Class Initialization
+ */
+final class Nova_X_Core {
+    
+    private static $instance = null;
+
+    public static function instance() {
+        if ( is_null( self::$instance ) ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    public function __construct() {
+        // Load Core Components
+        $this->includes();
+        $this->hooks();
+    }
+
+    /**
+     * Load the required files
+     */
+    private function includes() {
+        // Load Classes (using the lowercase folder 'classes')
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-openai.php';
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-rest.php';
+        
+        // Initialize REST API
+        new Nova_X_REST();
+    }
+
+    private function hooks() {
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
+        add_action( 'admin_menu', [ $this, 'register_admin_menu' ] );
+    }
+
+    public function register_admin_menu() {
+        add_menu_page(
+            'Nova-X',
+            'Nova-X',
+            'manage_options',
+            'nova-x',
+            [ $this, 'render_admin_page' ],
+            'dashicons-superhero', // Cool icon
+            2
+        );
+    }
+
+    public function render_admin_page() {
+        echo '<div id="nova-x-app-root"></div>';
+    }
+
+    public function enqueue_admin_assets( $hook ) {
+        // Only load on our plugin page
+        if ( 'toplevel_page_nova-x' !== $hook ) {
+            return;
+        }
+
+        // Load the React App assets from the 'build' folder
+        // Note: npm run start/build creates the 'build' folder automatically
+        $asset_file_path = NOVA_X_PATH . 'build/index.asset.php';
+        
+        if ( file_exists( $asset_file_path ) ) {
+            $asset_file = include( $asset_file_path );
+
+            wp_enqueue_script(
+                'nova-x-app',
+                NOVA_X_URL . 'build/index.js',
+                $asset_file['dependencies'],
+                NOVA_X_VERSION,
+                true
+            );
+
+            wp_enqueue_style(
+                'nova-x-style',
+                NOVA_X_URL . 'build/index.css',
+                array(),
+                NOVA_X_VERSION
+            );
+        }
+    }
+}
+
+// Ignite the engine
+Nova_X_Core::instance();
