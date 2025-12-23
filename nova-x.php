@@ -89,15 +89,24 @@ final class Nova_X_Core {
                 'nova-x-app',
                 NOVA_X_URL . 'build/index.js',
                 $asset_file['dependencies'],
-                NOVA_X_VERSION,
+                time(),
                 true
             );
 
             wp_enqueue_style(
                 'nova-x-style',
-                NOVA_X_URL . 'build/index.css',
+                NOVA_X_URL . 'build/style-index.css',
                 array(),
-                NOVA_X_VERSION
+                time()
+            );
+
+            // Localize script to pass API key to frontend
+            wp_localize_script(
+                'nova-x-app',
+                'novaXData',
+                array(
+                    'apiKey' => get_option( 'nova_x_api_key', '' ),
+                )
             );
         }
     }

@@ -9,10 +9,14 @@
         "start": "wp-scripts start",
         "build": "wp-scripts build",
         "format": "wp-scripts format",
-        "packages-update": "wp-scripts packages-update"
+        "packages-update": "wp-scripts packages-update",
+        "dev-sync": "chokidar \"src/**/*\" \"*.php\" -i \"node_modules/**\" --initial -c \"npm run build && node scripts/sync-to-server.js\""
     },
     "devDependencies": {
         "@wordpress/api-fetch": "^7.36.0",
-        "@wordpress/scripts": "^26.0.0"
+        "@wordpress/element": "^6.0.0",
+        "@wordpress/scripts": "^26.0.0",
+        "chokidar-cli": "^3.0.0",
+        "dotenv": "^16.0.0"
     }
 }
