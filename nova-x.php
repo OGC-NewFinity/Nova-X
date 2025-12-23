@@ -9,7 +9,7 @@
  * Requires at least: 6.2
  * Requires PHP: 8.0
  */
-
+// Connection Test
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
