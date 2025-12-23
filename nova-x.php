@@ -46,7 +46,7 @@ final class Nova_X_Core {
         // Load Classes (using the lowercase folder 'classes')
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-openai.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-rest.php';
-        
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-generator.php';
         // Initialize REST API
         new Nova_X_REST();
     }
