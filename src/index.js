@@ -32,7 +32,7 @@ const NovaXDashboard = () => {
             {/* Left Sidebar */}
             <aside className="nova-sidebar">
                 <div className="sidebar-brand">
-                    <h2>Nova-X</h2>
+                    <h2>Nova-X <span style={{color: 'green', marginLeft: '4px'}}>✅</span></h2>
                     <span>v0.1.2</span>
                 </div>
                 <nav className="sidebar-nav">

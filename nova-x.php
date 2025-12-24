@@ -63,10 +63,10 @@ final class Nova_X_Core {
             'manage_options',
             'nova-x',
             [ $this, 'render_admin_page' ],
-            'dashicons-superhero', // Cool icon
-            2
+            'dashicons-yes-alt', // GREEN CHECK ICON (TEST)
+            26
         );
-    }
+    }    
 
     public function render_admin_page() {
         echo '<div id="nova-x-app-root"></div>';
