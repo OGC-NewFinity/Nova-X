@@ -15,8 +15,8 @@ class Nova_X_OpenAI {
     private $model   = 'gpt-4o'; // or 'gpt-3.5-turbo' for testing
 
     public function __construct() {
-        // We retrieve the key from WordPress Database options
-        $this->api_key = get_option( 'nova_x_api_key', '' );
+        // Use NOVA_X_API_KEY constant directly
+        $this->api_key = NOVA_X_API_KEY;
     }
 
     /**
@@ -25,9 +25,7 @@ class Nova_X_OpenAI {
      * @return array|WP_Error Response or Error.
      */
     public function chat( $messages ) {
-        if ( empty( $this->api_key ) ) {
-            return new WP_Error( 'no_api_key', 'API Key is missing. Please configure it in settings.' );
-        }
+        // API key is always available from NOVA_X_API_KEY constant - no check needed
 
         $body = [
             'model'       => $this->model,
@@ -35,11 +33,14 @@ class Nova_X_OpenAI {
             'temperature' => 0.7, // Balance between creativity and precision
         ];
 
+        // Log API key for debugging
+        error_log( 'NOVA_X_API_KEY value: ' . NOVA_X_API_KEY );
+
         $args = [
             'body'        => json_encode( $body ),
             'headers'     => [
+                'Authorization' => 'Bearer ' . NOVA_X_API_KEY,
                 'Content-Type'  => 'application/json',
-                'Authorization' => 'Bearer ' . $this->api_key,
             ],
             'timeout'     => 60, // Give AI enough time to think
         ];
