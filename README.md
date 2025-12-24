@@ -1,102 +1,75 @@
-# 🚀 Nova-X | AI Theme Architect
-> **The future of WordPress design.** Build, style, and architect entire themes using the power of AI and Tailwind CSS.
+# <p align="center">🚀 Nova-X | AI Theme Architect</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/WordPress-v6.0+-21759b?style=for-the-badge&logo=wordpress&logoColor=white" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-v3.0+-38bdf8?style=for-the-badge&logo=tailwind-css&logoColor=white" />
+  <img src="https://img.shields.io/badge/OpenAI-Powered-41b883?style=for-the-badge&logo=openai&logoColor=white" />
+</p>
 
 ---
 
-## 🎨 Visual Identity & Purpose
-Nova-X isn't just a plugin; it's an **AI-driven ecosystem** for WordPress developers. It bridges the gap between creative intent and technical execution by translating natural language into production-ready code.
+## 💎 The Vision
+**Nova-X** is a revolutionary AI-driven ecosystem designed for modern WordPress architects. It transforms human creative intent into production-ready block themes by bridging the gap between natural language prompts and technical Tailwind CSS execution.
 
-| Feature | Description | Status |
-| :--- | :--- | :--- |
-| **AI Generation** | Real-time creation of PHP/Tailwind components. | ✅ Active |
-| **Live Preview** | Instant visual feedback in a sandboxed iframe. | 🛠️ In-Dev |
-| **Tailwind Engine** | Automated styling without writing a single line of CSS. | ✅ Active |
-| **One-Click Export** | Move from Localhost to Production seamlessly. | 📅 Planned |
+> [!IMPORTANT]
+> **Nova-X** is currently in active development. It is built to empower developers to build faster, style smarter, and architect better.
 
 ---
 
-## 🏗️ Architecture Framework
-The project is built on a modular "Bridge" architecture to ensure speed and security.
+## 🛠️ Integrated Architecture
+The Nova-X engine operates on a three-tier "Smart Logic" framework to ensure code quality and design consistency.
 
-### **System Workflow Diagram**
+### **The Intelligence Workflow**
 ```mermaid
-graph LR
-    A[User Prompt] --> B{AI Architect Engine}
-    B --> C[Tailwind Generator]
-    B --> D[PHP Template Logic]
-I understand perfectly now. You are looking for a high-quality README.md file for your GitHub repository. In the world of GitHub, this file is the visual identity; it’s what people see when they land on your project.
+graph TD
+    User([<b>User Creative Intent</b>]) -->|Descriptive Prompt| Engine{<b>Nova-X AI Architect</b>}
+    Engine -->|Logic Processing| PHP[<b>PHP Component Logic</b>]
+    Engine -->|Style Generation| TW[<b>Tailwind Utility Classes</b>]
+    PHP & TW --> Preview(<b>Live Sandbox Preview</b>)
+    Preview -->|Validation| Export{{<b>One-Click Deploy</b>}}
+    
+    style User fill:#f9f,stroke:#333,stroke-width:2px
+    style Engine fill:#bbf,stroke:#333,stroke-width:4px
+    style Export fill:#dfd,stroke:#333,stroke-width:2px
+Feature,Visual Status,description
+Architect Chat,⚡,Interactive sidebar for real-time AI theme building.
+Tailwind Engine,🎨,Automatic CSS generation with zero manual configuration.
+Live Sandbox,🖥️,Preview changes in a secure iframe without breaking your site.
+Smart Export,📦,Package your AI-generated theme for live production use.
+🚀 Rapid Installation
+Setting up your professional development environment takes less than 2 minutes.
 
-I have prepared a professional, visually structured version using Markdown "tricks" like shields, tables, and blockquotes to make it look clean and sophisticated.
-
-Copy and Save this as README.md in your project root:
-Markdown
-
-# 🚀 Nova-X | AI Theme Architect
-> **The future of WordPress design.** Build, style, and architect entire themes using the power of AI and Tailwind CSS.
-
----
-
-## 🎨 Visual Identity & Purpose
-Nova-X isn't just a plugin; it's an **AI-driven ecosystem** for WordPress developers. It bridges the gap between creative intent and technical execution by translating natural language into production-ready code.
-
-| Feature | Description | Status |
-| :--- | :--- | :--- |
-| **AI Generation** | Real-time creation of PHP/Tailwind components. | ✅ Active |
-| **Live Preview** | Instant visual feedback in a sandboxed iframe. | 🛠️ In-Dev |
-| **Tailwind Engine** | Automated styling without writing a single line of CSS. | ✅ Active |
-| **One-Click Export** | Move from Localhost to Production seamlessly. | 📅 Planned |
-
----
-
-## 🏗️ Architecture Framework
-The project is built on a modular "Bridge" architecture to ensure speed and security.
-
-### **System Workflow Diagram**
-```mermaid
-graph LR
-    A[User Prompt] --> B{AI Architect Engine}
-    B --> C[Tailwind Generator]
-    B --> D[PHP Template Logic]
-    C --> E[Live Sandbox Preview]
-    D --> E
-    E --> F[Approved Code to Theme]
-🛠️ Installation & Setup
-To get your development environment running on Localhost:
-
-Clone the Repository:
-
-Bash
-
+1. Clone & Prepare
 git clone [https://github.com/OGC-NewFinity/Nova-X.git](https://github.com/OGC-NewFinity/Nova-X.git)
-Setup LocalWP:
+2. Environment Configuration
+Navigate to your nova-x.php file and define your secure entry point:
 
-Move the /nova-x folder to wp-content/plugins/.
+PHP
 
-Activate the plugin via WordPress Admin.
+define('NOVA_X_API_KEY', 'sk-your-secure-openai-key-here');
+📅 Roadmap: The Path to v1.0
+Nova-X follows a strict development sprint cycle to ensure feature stability.
 
-Configure API:
+Phase 1: Foundation ✅
 
-Open nova-x.php in Cursor.
+Infrastructure setup & Localhost synchronization.
 
-Set your NOVA_X_API_KEY on line 2.
+Phase 2: Orchestration 🔄 (Current)
 
-📝 Strategic Roadmap
-[!NOTE] This project is currently in Phase 2 (AI Orchestration). We are focusing on refining the system prompts and Tailwind context.
+Refining AI Prompt Context & Tailwind logic.
 
-Key Milestones
-[x] Initial Infrastructure & Localhost Sync.
+Phase 3: Visual Dashboard ⏳
 
-[x] Secure API Bridge Integration.
+React-based Pro UI with real-time component controls.
 
-[ ] Next: React-based Dashboard UI implementation.
+Phase 4: Marketplace Ready ⏳
 
-[ ] Next: Dynamic Section Generation (Heros/Pricing/Grids).
+Automated theme packaging and export modules.
 
-🤝 Contribution & License
-Nova-X is a proprietary project by OGC NewFinity.
+<p align="center"> <b>Built with passion by <a href="https://ogcnewfinity.com">OGC NewFinity</a></b>
 
-Developed with: ❤️ and Cursor AI.
 
-Tech Stack: PHP, Tailwind CSS, React, OpenAI API.
 
-© 2025 Nova-X Project | Built by OGC NewFinity
+
+
+
