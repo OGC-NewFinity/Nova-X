@@ -1,5 +1,4 @@
 <?php
-define('NOVA_X_API_KEY','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');
 /**
  * Plugin Name: Nova-X | AI Theme Architect
  * Description: The next-gen AI agent for building WordPress Block Themes via visual chat interface.
@@ -93,7 +92,18 @@ final class Nova_X_Core {
                 time(),
                 true
             );
-
+            $stored_key = get_option('nova_x_api_key', '');
+            $has_key = ! empty( trim( $stored_key ) );
+            
+            wp_localize_script(
+                'nova-x-app',
+                'novaXData',
+                array(
+                    'hasKey'    => $has_key,
+                    'maskedKey' => $has_key ? '********' : '',
+                )
+            );            
+            
             wp_enqueue_style(
                 'nova-x-style',
                 NOVA_X_URL . 'build/style-index.css',
@@ -101,14 +111,7 @@ final class Nova_X_Core {
                 time()
             );
 
-            // Localize script to pass API key to frontend - always use the constant
-            wp_localize_script(
-                'nova-x-app',
-                'novaXData',
-                array(
-                    'apiKey' => NOVA_X_API_KEY,
-                )
-            );
+
         }
     }
 }

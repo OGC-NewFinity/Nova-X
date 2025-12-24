@@ -8,8 +8,8 @@ const NovaXDashboard = () => {
     const hasApiKey = true; // Always true - force dashboard to load
     const isConfigured = true; // Always configured - no setup required
     const isLoading = false; // Never loading - always ready
-    // Always use value from NOVA_X_API_KEY constant (passed via window.novaXData.apiKey)
-    const [apiKey, setApiKey] = useState((window.novaXData && window.novaXData.apiKey) ? window.novaXData.apiKey : '');
+    // Use maskedKey from window.novaXData (or empty string)
+    const [apiKey, setApiKey] = useState((window.novaXData && window.novaXData.maskedKey) ? window.novaXData.maskedKey : '');
 
     const saveSettings = () => {
         apiFetch({

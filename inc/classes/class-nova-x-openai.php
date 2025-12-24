@@ -1,9 +1,4 @@
 <?php
-/**
- * OpenAI Connector Class
- * Handles direct communication with the OpenAI API.
- */
-
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -12,52 +7,59 @@ class Nova_X_OpenAI {
 
     private $api_key;
     private $api_url = 'https://api.openai.com/v1/chat/completions';
-    private $model   = 'gpt-4o'; // or 'gpt-3.5-turbo' for testing
 
     public function __construct() {
-        // Use NOVA_X_API_KEY constant directly
-        $this->api_key = NOVA_X_API_KEY;
+        // Read API key ONLY from WordPress options
+        $this->api_key = trim( (string) get_option( 'nova_x_api_key', '' ) );
     }
 
-    /**
-     * Send a prompt to the AI and get a response.
-     * * @param array $messages The chat history (Context).
-     * @return array|WP_Error Response or Error.
-     */
-    public function chat( $messages ) {
-        // API key is always available from NOVA_X_API_KEY constant - no check needed
+    public function generate( $prompt ) {
 
-        $body = [
-            'model'       => $this->model,
-            'messages'    => $messages,
-            'temperature' => 0.7, // Balance between creativity and precision
-        ];
+        if ( empty( $this->api_key ) ) {
+            return new WP_Error(
+                'nova_x_missing_api_key',
+                'OpenAI API key is missing. Please save it in Nova-X settings.'
+            );
+        }
 
-        // Log API key for debugging
-        error_log( 'NOVA_X_API_KEY value: ' . NOVA_X_API_KEY );
+        $body = array(
+            'model' => 'gpt-4o-mini',
+            'messages' => array(
+                array(
+                    'role'    => 'user',
+                    'content' => $prompt,
+                ),
+            ),
+            'temperature' => 0.7,
+        );
 
-        $args = [
-            'body'        => json_encode( $body ),
-            'headers'     => [
-                'Authorization' => 'Bearer ' . NOVA_X_API_KEY,
-                'Content-Type'  => 'application/json',
-            ],
-            'timeout'     => 60, // Give AI enough time to think
-        ];
-
-        $response = wp_remote_post( $this->api_url, $args );
+        $response = wp_remote_post(
+            $this->api_url,
+            array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $this->api_key,
+                    'Content-Type'  => 'application/json',
+                ),
+                'body'    => wp_json_encode( $body ),
+                'timeout' => 30,
+            )
+        );
 
         if ( is_wp_error( $response ) ) {
             return $response;
         }
 
-        $response_body = wp_remote_retrieve_body( $response );
-        $data = json_decode( $response_body, true );
+        $code = wp_remote_retrieve_response_code( $response );
+        $data = json_decode( wp_remote_retrieve_body( $response ), true );
 
-        if ( isset( $data['error'] ) ) {
-            return new WP_Error( 'openai_error', $data['error']['message'] );
+        if ( $code !== 200 || empty( $data['choices'][0]['message']['content'] ) ) {
+            return new WP_Error(
+                'nova_x_openai_error',
+                'OpenAI request failed.',
+                $data
+            );
         }
 
-        return $data['choices'][0]['message']['content'] ?? '';
+        return trim( $data['choices'][0]['message']['content'] );
     }
 }
