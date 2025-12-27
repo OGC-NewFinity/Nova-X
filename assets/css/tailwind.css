@@ -1,0 +1,7 @@
+/* Tailwind CSS - Main Source File */
+/* This file will contain Tailwind CSS directives and custom styles */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
