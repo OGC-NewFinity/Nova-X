@@ -1,38 +1,67 @@
 # 02_TECH_ARCHITECTURE.md
 
 ## 🏗️ SYSTEM ARCHITECTURE & LOGIC FLOW
-> **Technical Objective:** To establish a decoupled, high-performance architecture that optimizes communication between the local Docker environment and external AI Service Providers.
+> **Technical Objective:** To establish a decoupled, high-performance architecture that optimizes communication between the local Docker environment and external AI Service Providers while maintaining a zero-latency WordPress admin experience.
 
 ---
 
-## 🧩 CORE ARCHITECTURAL DIAGRAM
-The following flow illustrates the request-response lifecycle between the WordPress backend and the AI Orchestrator.
+## 🧩 CORE ARCHITECTURAL LAYERS
+Nova-X is engineered with a modular separation of concerns to ensure stability and scalability.
 
+* **Frontend Layer:** React-driven Single Page Application (SPA) styled with Tailwind CSS for a native SaaS feel.
+* **Controller Layer:** PHP-based REST API handlers managing the bridge between the UI and the server logic.
+* **Intelligence Layer:** Proprietary prompt-engineering engine that formats user intent into structured AI requests.
+* **Storage Layer:** Custom MariaDB tables optimized for tracking AI logs and design templates without bloating core WP tables.
 
+---
 
-```mermaid
-graph TD
-    subgraph Client_Layer [Frontend - React/Tailwind]
-        A[Dashboard UI] --> B[State Manager]
-        B --> C[WP REST API Client]
-    end
+## 🛠️ COMPONENT SPECIFICATIONS
+[Visual Flow: User UI ➡️ REST Controller ➡️ AI Engine ➡️ WP Core Injection]
 
-    subgraph Core_Logic [Plugin Engine - PHP OOP]
-        C --> D[Request Router]
-        D --> E{Security & License Check}
-        E -- Authorized --> F[AI Orchestrator]
-        E -- Denied --> G[Error Handler]
-    end
+### 1. **AI Orchestrator (`class-nova-x-openai.php`)**
+Manages all external API handshakes, handling secure key transmission and token streaming.
 
-    subgraph External_Cloud [AI & Billing Services]
-        F --> H[OpenAI/Claude API]
-        F --> I[Licensing Server]
-    end
+### 2. **REST Gateway (`class-nova-x-rest.php`)**
+Provides secure custom endpoints for the React dashboard to communicate with the PHP backend asynchronously.
 
-    subgraph Data_Storage [Local MariaDB]
-        F --> J[(Custom DB Tables)]
-        J --> K[Usage Logs]
-        J --> L[Generated Assets]
-    end
-🛠️ COMPONENT SPECIFICATIONSComponentResponsibilityTechnical ImplementationRequest ControllerHandles AJAX/REST routing.NovaX_REST_ControllerAI OrchestratorManages prompts and model selection.NovaX_AI_EnginePattern GeneratorConverts AI JSON to Gutenberg Blocks.NovaX_ArchitectAsset ManagerSyncs AI images to Media Library.NovaX_Media_ForgeUsage MonitorTracks local token consumption.NovaX_Usage_Tracker💾 DATABASE SCHEMA (CUSTOM TABLES)To ensure zero bloat in wp_options, Nova-X utilizes high-speed custom tables.1. {prefix}_novax_logsPurpose: Tracks every AI interaction for user auditing.Structure: ID, user_id, model_used, tokens_in, tokens_out, timestamp.2. {prefix}_novax_templatesPurpose: Stores AI-generated design patterns for reuse.Structure: template_id, category, raw_json_data, created_at.🔒 SECURITY & DATA INTEGRITYAPI Key Isolation: API keys are stored as encrypted environment variables in Docker, never exposed in the browser.Request Validation: Every transaction is shielded by WordPress Nonces and current_user_can('manage_options') checks.Content Sanitization: Multi-pass scrubbing using wp_kses() before any AI data is saved to the database.🚀 DOCKER & PERFORMANCE OPTIMIZATIONAsync Processing: Long-running AI tasks (e.g., bulk posting) are offloaded to background workers.Local Caching: AI responses are cached locally to reduce API costs and improve UI latency.Isolated Assets: React components and Tailwind CSS are scoped to the nova-x namespace to prevent theme conflicts.Document Version: 1.0.0 | Environment: Docker-Local
-**Would you like me to proceed with 03_FEATURE_SPECIFICATIONS.md in this same visual st
+### 3. **The Generator (`class-nova-x-generator.php`)**
+The logic engine that converts AI text and JSON responses into native WordPress posts, pages, and metadata.
+
+---
+
+## ⚡ TECHNICAL STACK & DEPENDENCIES
+
+| Technology | Implementation |
+| :--- | :--- |
+| **PHP Version** | 8.2+ (Strictly typed for local Docker environment) |
+| **JavaScript** | React 18+ with WordPress Dependency Management |
+| **CSS Framework** | Tailwind CSS 3.4 (Scoped to avoid theme conflicts) |
+| **API Protocols** | REST API for data, SSE for real-time text streaming |
+
+---
+
+## 💾 DATABASE ARCHITECTURE
+Nova-X utilizes a clean-slate approach to data persistence to maintain high performance.
+
+* **`_novax_usage_logs`**: Tracks real-time credit consumption and request timestamps.
+* **`_novax_architect_templates`**: Stores AI-generated JSON layouts for instant pattern injection.
+* **`_novax_settings`**: Encrypted storage for API keys and global brand identity configuration.
+
+---
+
+## 🔒 SECURITY & DATA INTEGRITY
+
+* **Encryption:** API keys are stored using AES-256 encryption within the local database.
+* **Validation:** 100% adherence to WordPress security protocols (Nonces, Sanitization, and Capability checks).
+* **Isolation:** All plugin assets are namespace-protected to prevent styling or variable collisions with third-party themes.
+
+---
+
+## 📈 PERFORMANCE OPTIMIZATION (DOCKER)
+
+* **Async Workers:** Background processing for bulk content generation to prevent PHP timeouts.
+* **Object Caching:** Native integration with Redis/Memcached if available in the Docker stack.
+* **Asset Bundling:** Minified, production-ready JS/CSS bundles served via the local file system for maximum speed.
+
+---
+*Document Version: 1.0.0 | Environment: Docker-Local*
