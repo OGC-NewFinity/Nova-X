@@ -15,7 +15,7 @@ class Nova_X_AI_Engine {
      *
      * @var array
      */
-    private $fallback_chain = [ 'openai', 'groq', 'mistral', 'anthropic' ];
+    private $fallback_chain = [ 'openai', 'groq', 'mistral', 'anthropic', 'gemini' ];
 
     /**
      * Constructor - Load provider and API key from WordPress options
@@ -66,7 +66,7 @@ class Nova_X_AI_Engine {
                 $this->api_url = 'https://api.mistral.ai/v1/chat/completions';
                 break;
             case 'gemini':
-                $this->api_url = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent';
+                $this->api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
                 break;
             case 'cohere':
                 $this->api_url = 'https://api.cohere.ai/v1/chat';
@@ -198,6 +198,8 @@ class Nova_X_AI_Engine {
                     return $this->call_groq( $prompt );
                 case 'mistral':
                     return $this->call_mistral( $prompt );
+                case 'gemini':
+                    return $this->call_gemini( $prompt );
                 default:
                     return [
                         'success' => false,
@@ -764,6 +766,130 @@ class Nova_X_AI_Engine {
             'success'  => true,
             'output'   => $output,
             'provider' => 'mistral',
+        ];
+    }
+
+    /**
+     * Call Gemini API to generate theme code
+     *
+     * @param string $prompt User prompt for theme generation.
+     * @return array Response array with success status, message, and output.
+     */
+    private function call_gemini( $prompt ) {
+        // Sanitize prompt
+        $prompt = sanitize_textarea_field( $prompt );
+        if ( empty( $prompt ) ) {
+            return [
+                'success' => false,
+                'message' => esc_html__( 'Empty prompt.', 'nova-x' ),
+            ];
+        }
+
+        // Load API key - try multiple sources
+        $api_key = $this->api_key;
+        if ( empty( $api_key ) ) {
+            $api_key = trim( (string) get_option( 'nova_x_api_key_gemini', '' ) );
+        }
+        
+        // Try Provider Manager if available
+        if ( empty( $api_key ) && class_exists( 'Nova_X_Provider_Manager' ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-provider-manager.php';
+            $api_key = Nova_X_Provider_Manager::get_api_key( 'gemini' );
+        }
+
+        // Stub mode if no API key
+        if ( empty( $api_key ) ) {
+            return [
+                'success'  => true,
+                'message'  => 'Stubbed response for Gemini',
+                'output'   => '<?php // Simulated theme output ?>',
+                'provider' => 'gemini',
+            ];
+        }
+
+        // Build Gemini API URL with API key as query parameter
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' . urlencode( $api_key );
+
+        // Prepare request body
+        $body = wp_json_encode(
+            [
+                'contents' => [
+                    [
+                        'parts' => [
+                            [
+                                'text' => 'You are an expert WordPress theme developer. Respond only with clean HTML, CSS, and PHP for WordPress themes. ' . $prompt,
+                            ],
+                        ],
+                    ],
+                ],
+            ]
+        );
+
+        // Make API request
+        $response = wp_remote_post(
+            $url,
+            [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                ],
+                'body'    => $body,
+                'timeout' => 60,
+            ]
+        );
+
+        // Handle WP_Error
+        if ( is_wp_error( $response ) ) {
+            return [
+                'success' => false,
+                'message' => esc_html( $response->get_error_message() ),
+            ];
+        }
+
+        // Get response code and body
+        $code = wp_remote_retrieve_response_code( $response );
+        $body = wp_remote_retrieve_body( $response );
+        $data = json_decode( $body, true );
+
+        // Handle non-200 responses
+        if ( $code !== 200 ) {
+            $error_message = esc_html__( 'Unexpected response from Gemini.', 'nova-x' );
+            if ( isset( $data['error']['message'] ) ) {
+                $error_message = esc_html( $data['error']['message'] );
+            }
+            return [
+                'success' => false,
+                'message' => $error_message,
+            ];
+        }
+
+        // Extract output from response
+        if ( empty( $data['candidates'][0]['content']['parts'][0]['text'] ) ) {
+            return [
+                'success' => false,
+                'message' => esc_html__( 'Unexpected response from Gemini.', 'nova-x' ),
+            ];
+        }
+
+        $output = $data['candidates'][0]['content']['parts'][0]['text'];
+
+        // Track usage (Gemini doesn't return token count in response, so we estimate)
+        // Estimate based on prompt and output length (rough approximation: 1 token ≈ 4 characters)
+        $estimated_tokens = absint( strlen( $prompt ) / 4 ) + absint( strlen( $output ) / 4 );
+        // Set minimum estimate of 1000 tokens for any generation
+        if ( $estimated_tokens < 1000 ) {
+            $estimated_tokens = 1000;
+        }
+        
+        if ( class_exists( 'Nova_X_Usage_Tracker' ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-usage-tracker.php';
+            Nova_X_Usage_Tracker::log_usage( 'gemini', $estimated_tokens );
+        }
+
+        // Return success response
+        return [
+            'success'  => true,
+            'output'   => $output,
+            'provider' => 'gemini',
         ];
     }
 

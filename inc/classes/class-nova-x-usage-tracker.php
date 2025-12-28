@@ -22,12 +22,13 @@ class Nova_X_Usage_Tracker {
         'anthropic' => 0.008,   // Claude 2.1: $0.008 per 1K tokens
         'groq'      => 0.002,  // Mixtral: $0.002 per 1K tokens
         'mistral'   => 0.0027, // Mistral Large: $0.0027 per 1K tokens
+        'gemini'    => 0.005,  // Gemini Pro: $0.005 per 1K tokens
     ];
 
     /**
      * Log usage for a provider call
      *
-     * @param string $provider    Provider name (openai, anthropic, groq, mistral).
+     * @param string $provider    Provider name (openai, anthropic, groq, mistral, gemini).
      * @param int    $tokens_used Number of tokens used.
      * @return bool Success status.
      */
@@ -40,6 +41,12 @@ class Nova_X_Usage_Tracker {
             return false;
         }
 
+        // Normalize provider name
+        $provider = strtolower( $provider );
+        if ( 'claude' === $provider ) {
+            $provider = 'anthropic';
+        }
+
         // Get current totals
         $total_tokens = absint( get_option( 'nova_x_total_tokens_used', 0 ) );
         $total_cost = floatval( get_option( 'nova_x_total_cost_usd', 0 ) );
@@ -47,13 +54,32 @@ class Nova_X_Usage_Tracker {
         // Calculate cost for this usage
         $cost = self::calculate_cost( $provider, $tokens_used );
 
-        // Update totals
+        // Update global totals
         $total_tokens += $tokens_used;
         $total_cost += $cost;
 
-        // Save updated totals
+        // Get per-provider usage data
+        $provider_usage = get_option( 'nova_x_provider_usage', [] );
+        if ( ! is_array( $provider_usage ) ) {
+            $provider_usage = [];
+        }
+
+        // Initialize provider if not exists
+        if ( ! isset( $provider_usage[ $provider ] ) ) {
+            $provider_usage[ $provider ] = [
+                'tokens' => 0,
+                'cost'   => 0.0,
+            ];
+        }
+
+        // Update per-provider totals
+        $provider_usage[ $provider ]['tokens'] = absint( $provider_usage[ $provider ]['tokens'] ) + $tokens_used;
+        $provider_usage[ $provider ]['cost'] = floatval( $provider_usage[ $provider ]['cost'] ) + $cost;
+
+        // Save updated data
         update_option( 'nova_x_total_tokens_used', $total_tokens, false );
         update_option( 'nova_x_total_cost_usd', $total_cost, false );
+        update_option( 'nova_x_provider_usage', $provider_usage, false );
 
         return true;
     }
@@ -104,13 +130,102 @@ class Nova_X_Usage_Tracker {
     }
 
     /**
-     * Reset tracker (clear all totals)
+     * Get tokens used for a specific provider
+     *
+     * @param string $provider Provider name.
+     * @return int Tokens used for the provider.
+     */
+    public static function get_provider_tokens( $provider ) {
+        $provider = strtolower( sanitize_text_field( $provider ) );
+        if ( 'claude' === $provider ) {
+            $provider = 'anthropic';
+        }
+
+        $provider_usage = get_option( 'nova_x_provider_usage', [] );
+        if ( ! is_array( $provider_usage ) || ! isset( $provider_usage[ $provider ] ) ) {
+            return 0;
+        }
+
+        return absint( $provider_usage[ $provider ]['tokens'] );
+    }
+
+    /**
+     * Get cost for a specific provider
+     *
+     * @param string $provider Provider name.
+     * @return float Cost in USD for the provider.
+     */
+    public static function get_provider_cost( $provider ) {
+        $provider = strtolower( sanitize_text_field( $provider ) );
+        if ( 'claude' === $provider ) {
+            $provider = 'anthropic';
+        }
+
+        $provider_usage = get_option( 'nova_x_provider_usage', [] );
+        if ( ! is_array( $provider_usage ) || ! isset( $provider_usage[ $provider ] ) ) {
+            return 0.0;
+        }
+
+        return floatval( $provider_usage[ $provider ]['cost'] );
+    }
+
+    /**
+     * Get all provider usage data (chart-ready format)
+     *
+     * @return array Array of provider data with tokens and cost.
+     */
+    public static function get_all_provider_data() {
+        $provider_usage = get_option( 'nova_x_provider_usage', [] );
+        if ( ! is_array( $provider_usage ) ) {
+            return [];
+        }
+
+        // Ensure all providers are included with default values
+        $all_providers = array_keys( self::$cost_per_1k_tokens );
+        $result = [];
+
+        foreach ( $all_providers as $provider ) {
+            $result[ $provider ] = [
+                'tokens' => isset( $provider_usage[ $provider ] ) 
+                    ? absint( $provider_usage[ $provider ]['tokens'] ) 
+                    : 0,
+                'cost'   => isset( $provider_usage[ $provider ] ) 
+                    ? floatval( $provider_usage[ $provider ]['cost'] ) 
+                    : 0.0,
+                'label'  => self::get_provider_label( $provider ),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get human-readable provider label
+     *
+     * @param string $provider Provider name.
+     * @return string Provider label.
+     */
+    private static function get_provider_label( $provider ) {
+        $labels = [
+            'openai'    => 'OpenAI (GPT-4)',
+            'anthropic' => 'Anthropic (Claude)',
+            'groq'      => 'Groq (Mixtral)',
+            'mistral'   => 'Mistral (Large)',
+            'gemini'    => 'Google Gemini',
+        ];
+
+        return isset( $labels[ $provider ] ) ? $labels[ $provider ] : ucfirst( $provider );
+    }
+
+    /**
+     * Reset tracker (clear all totals and per-provider data)
      *
      * @return bool Success status.
      */
     public static function reset_tracker() {
         delete_option( 'nova_x_total_tokens_used' );
         delete_option( 'nova_x_total_cost_usd' );
+        delete_option( 'nova_x_provider_usage' );
         return true;
     }
 

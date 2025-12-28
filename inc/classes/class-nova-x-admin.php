@@ -142,7 +142,7 @@ class Nova_X_Admin {
                             <select name="nova_x_provider">
                                 <?php
                                 $selected = esc_attr( get_option( 'nova_x_provider', 'openai' ) );
-                                $providers = [ 'openai' => 'OpenAI', 'anthropic' => 'Anthropic', 'groq' => 'Groq', 'mistral' => 'Mistral' ];
+                                $providers = [ 'openai' => 'OpenAI', 'anthropic' => 'Anthropic', 'groq' => 'Groq', 'mistral' => 'Mistral', 'gemini' => 'Gemini' ];
                                 foreach ( $providers as $value => $label ) {
                                     echo "<option value='" . esc_attr( $value ) . "' " . selected( $selected, $value, false ) . ">$label</option>";
                                 }
@@ -179,6 +179,7 @@ class Nova_X_Admin {
             require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-usage-tracker.php';
             $total_tokens = Nova_X_Usage_Tracker::get_formatted_tokens();
             $total_cost = Nova_X_Usage_Tracker::get_formatted_cost();
+            $provider_data = Nova_X_Usage_Tracker::get_all_provider_data();
             ?>
             <table class="form-table">
                 <tr>
@@ -193,6 +194,46 @@ class Nova_X_Admin {
                         <strong style="font-size: 16px;">💵 $<?php echo esc_html( $total_cost ); ?> USD</strong>
                     </td>
                 </tr>
+            </table>
+
+            <h3>Per-Provider Breakdown</h3>
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
+                        <th style="width: 200px;">Provider</th>
+                        <th style="text-align: right;">Tokens Used</th>
+                        <th style="text-align: right;">Cost (USD)</th>
+                        <th style="text-align: right;">% of Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $total_tokens_num = Nova_X_Usage_Tracker::get_total_tokens();
+                    $total_cost_num = Nova_X_Usage_Tracker::get_total_cost();
+                    
+                    if ( empty( $provider_data ) || $total_tokens_num === 0 ) {
+                        echo '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;">No usage data yet. Generate a theme to see statistics.</td></tr>';
+                    } else {
+                        foreach ( $provider_data as $provider => $data ) {
+                            if ( $data['tokens'] > 0 ) {
+                                $token_percent = $total_tokens_num > 0 
+                                    ? round( ( $data['tokens'] / $total_tokens_num ) * 100, 1 ) 
+                                    : 0;
+                                $cost_percent = $total_cost_num > 0 
+                                    ? round( ( $data['cost'] / $total_cost_num ) * 100, 1 ) 
+                                    : 0;
+                                
+                                echo '<tr>';
+                                echo '<td><strong>' . esc_html( $data['label'] ) . '</strong></td>';
+                                echo '<td style="text-align: right;">' . esc_html( number_format( $data['tokens'] ) ) . '</td>';
+                                echo '<td style="text-align: right;">$' . esc_html( number_format( $data['cost'], 4 ) ) . '</td>';
+                                echo '<td style="text-align: right;">' . esc_html( $token_percent ) . '%</td>';
+                                echo '</tr>';
+                            }
+                        }
+                    }
+                    ?>
+                </tbody>
             </table>
             <p>
                 <button type="button" class="button" id="nova_x_reset_tracker">🔄 Reset Tracker</button>
