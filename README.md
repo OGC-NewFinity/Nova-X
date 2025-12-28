@@ -31,11 +31,41 @@ graph TD
     style User fill:#f9f,stroke:#333,stroke-width:2px
     style Engine fill:#bbf,stroke:#333,stroke-width:4px
     style Export fill:#dfd,stroke:#333,stroke-width:2px
-Feature,Visual Status,description
-Architect Chat,⚡,Interactive sidebar for real-time AI theme building.
-Tailwind Engine,🎨,Automatic CSS generation with zero manual configuration.
-Live Sandbox,🖥️,Preview changes in a secure iframe without breaking your site.
-Smart Export,📦,Package your AI-generated theme for live production use.
+```
+
+---
+
+## 🤖 Supported AI Providers
+
+Nova-X supports multiple AI providers, giving you flexibility to choose the best AI model for your needs:
+
+| Provider | Models | Status |
+|----------|--------|--------|
+| **OpenAI** | GPT-4, GPT-4 Turbo, GPT-3.5 | ✅ Supported |
+| **Google Gemini** | Gemini Pro, Gemini Ultra | 🚧 Coming Soon |
+| **Anthropic Claude** | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku | 🚧 Coming Soon |
+| **Mistral AI** | Mistral Large, Mistral Medium | 🚧 Coming Soon |
+| **Cohere** | Command, Command Light | 🚧 Coming Soon |
+
+### Provider Features
+
+- **Multiple Provider Support**: Switch between providers based on your needs
+- **User-Managed API Keys**: Store and manage API keys securely in WordPress options
+- **Provider Fallback**: Automatic failover to backup providers (coming soon)
+- **Usage Tracking**: Monitor API usage per provider (coming soon)
+
+For detailed information on managing API keys, see [API Key Manager Documentation](docs/07-settings-page-api-key-manager.md).
+
+---
+
+## ✨ Core Features
+
+| Feature | Visual Status | Description |
+|---------|---------------|-------------|
+| Architect Chat | ⚡ | Interactive sidebar for real-time AI theme building. |
+| Tailwind Engine | 🎨 | Automatic CSS generation with zero manual configuration. |
+| Live Sandbox | 🖥️ | Preview changes in a secure iframe without breaking your site. |
+| Smart Export | 📦 | Package your AI-generated theme for live production use. |
 🚀 Rapid Installation
 Setting up your professional development environment takes less than 2 minutes.
 

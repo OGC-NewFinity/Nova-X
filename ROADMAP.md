@@ -18,9 +18,11 @@ Nova-X is a specialized WordPress plugin designed to act as an AI-driven theme a
 - [ ] **File System Access:** Secure methods to read/write to the active theme directory.
 
 ### Phase 2: AI Orchestration & Prompting
-- [ ] **System Prompt Engineering:** Define the "Architect Role" (e.g., "You are a senior WP developer using Tailwind...").
+- [ ] **System Prompt Engineering:** Define the "Architect Role" (e.g., "You are a senior WP developer using Tailwind...").  
 - [ ] **Context Injection:** Automatically include `header.php`, `footer.php`, and `style.css` in AI prompts for consistency.
 - [ ] **Token Management:** Monitor usage to prevent overflow during large code generations.
+- [ ] 🔄 **Add support for multiple providers (OpenAI, Gemini, Claude, etc.):** Refactor AI engine to support multiple AI providers with unified interface.
+- [ ] 🔐 **Allow user to enter and store their own API keys (Options API):** Implement secure API key management system for all supported providers.
 
 ### Phase 3: Advanced Dashboard (UI/UX)
 - [ ] **Main Panel:** Integrated chat interface with code-highlighting.

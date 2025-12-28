@@ -3,14 +3,44 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Nova_X_OpenAI {
+class Nova_X_AI_Engine {
 
     private $api_key;
     private $api_url = 'https://api.openai.com/v1/chat/completions';
+    private $provider = 'openai';
 
     public function __construct() {
         // Read API key ONLY from WordPress options
         $this->api_key = trim( (string) get_option( 'nova_x_api_key', '' ) );
+    }
+
+    /**
+     * Set the AI provider to use.
+     * 
+     * @param string $provider Provider name (openai, gemini, claude, mistral, cohere, etc.)
+     * @return void
+     */
+    public function set_provider( $provider ) {
+        // Switch logic for OpenAI, Gemini, Claude, etc.
+        $supported_providers = defined( 'NOVA_X_SUPPORTED_PROVIDERS' ) ? NOVA_X_SUPPORTED_PROVIDERS : [];
+        
+        if ( in_array( $provider, $supported_providers, true ) ) {
+            $this->provider = sanitize_text_field( $provider );
+            
+            // TODO: Update API URL and endpoint based on provider
+            // switch ( $this->provider ) {
+            //     case 'openai':
+            //         $this->api_url = 'https://api.openai.com/v1/chat/completions';
+            //         break;
+            //     case 'gemini':
+            //         $this->api_url = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent';
+            //         break;
+            //     case 'claude':
+            //         $this->api_url = 'https://api.anthropic.com/v1/messages';
+            //         break;
+            //     // Add more providers as needed
+            // }
+        }
     }
 
     public function generate( $prompt ) {
@@ -18,7 +48,7 @@ class Nova_X_OpenAI {
         if ( empty( $this->api_key ) ) {
             return new WP_Error(
                 'nova_x_missing_api_key',
-                'OpenAI API key is missing. Please save it in Nova-X settings.'
+                'AI API key is missing. Please save it in Nova-X settings.'
             );
         }
 
@@ -54,8 +84,8 @@ class Nova_X_OpenAI {
 
         if ( $code !== 200 || empty( $data['choices'][0]['message']['content'] ) ) {
             return new WP_Error(
-                'nova_x_openai_error',
-                'OpenAI request failed.',
+                'nova_x_ai_error',
+                'AI request failed.',
                 $data
             );
         }
@@ -63,3 +93,4 @@ class Nova_X_OpenAI {
         return trim( $data['choices'][0]['message']['content'] );
     }
 }
+

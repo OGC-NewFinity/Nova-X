@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'NOVA_X_VERSION', '0.1.0' );
 define( 'NOVA_X_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NOVA_X_URL', plugin_dir_url( __FILE__ ) );
+define( 'NOVA_X_SUPPORTED_PROVIDERS', [ 'openai', 'gemini', 'claude', 'mistral', 'cohere' ] );
 
 /**
  * Main Class Initialization
@@ -44,7 +45,8 @@ final class Nova_X_Core {
      */
     private function includes() {
         // Load Classes (using the lowercase folder 'classes')
-        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-openai.php';
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-provider-manager.php';
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-ai-engine.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-rest.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-generator.php';
         // Initialize REST API
