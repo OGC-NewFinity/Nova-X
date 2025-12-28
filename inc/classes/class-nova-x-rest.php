@@ -73,6 +73,36 @@ class Nova_X_REST {
             ]
         );
 
+        register_rest_route(
+            'nova-x/v1',
+            '/preview-theme',
+            [
+                'methods'             => 'POST',
+                'callback'            => [ $this, 'handle_preview_theme' ],
+                'permission_callback' => [ $this, 'check_permissions' ],
+            ]
+        );
+
+        register_rest_route(
+            'nova-x/v1',
+            '/install-theme',
+            [
+                'methods'             => 'POST',
+                'callback'            => [ $this, 'handle_install_theme' ],
+                'permission_callback' => [ $this, 'check_permissions' ],
+            ]
+        );
+
+        register_rest_route(
+            'nova-x/v1',
+            '/reset-usage-tracker',
+            [
+                'methods'             => 'POST',
+                'callback'            => [ $this, 'handle_reset_usage_tracker' ],
+                'permission_callback' => [ $this, 'check_permissions' ],
+            ]
+        );
+
         // IMPORTANT:
         // No automatic OpenAI test route
         // No admin notices
@@ -345,6 +375,171 @@ class Nova_X_REST {
                 [
                     'success' => false,
                     'message' => $result['message'],
+                ],
+                500
+            );
+        }
+    }
+
+    /**
+     * Handle theme preview request
+     *
+     * @param WP_REST_Request $request REST request object.
+     * @return WP_REST_Response|WP_Error Response object.
+     */
+    public function handle_preview_theme( WP_REST_Request $request ) {
+        $params = $request->get_json_params();
+
+        // Verify nonce for CSRF protection
+        if ( ! isset( $params['nonce'] ) || ! wp_verify_nonce( $params['nonce'], 'nova_x_nonce' ) ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'Invalid nonce. Please refresh the page and try again.',
+                ],
+                403
+            );
+        }
+
+        // Sanitize and validate input
+        $zip_url = isset( $params['zip_url'] ) ? esc_url_raw( $params['zip_url'] ) : '';
+
+        if ( empty( $zip_url ) ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'ZIP URL is required for preview.',
+                ],
+                400
+            );
+        }
+
+        // Load Theme Installer
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-theme-installer.php';
+
+        // Preview theme
+        $result = Nova_X_Theme_Installer::preview_theme( $zip_url );
+
+        if ( $result['success'] ) {
+            return new WP_REST_Response(
+                [
+                    'success'     => true,
+                    'preview_url' => esc_url_raw( $result['preview_url'] ),
+                    'theme_slug'  => esc_html( $result['theme_slug'] ),
+                    'message'     => $result['message'],
+                ],
+                200
+            );
+        } else {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => $result['message'],
+                ],
+                500
+            );
+        }
+    }
+
+    /**
+     * Handle theme installation request
+     *
+     * @param WP_REST_Request $request REST request object.
+     * @return WP_REST_Response|WP_Error Response object.
+     */
+    public function handle_install_theme( WP_REST_Request $request ) {
+        $params = $request->get_json_params();
+
+        // Verify nonce for CSRF protection
+        if ( ! isset( $params['nonce'] ) || ! wp_verify_nonce( $params['nonce'], 'nova_x_nonce' ) ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'Invalid nonce. Please refresh the page and try again.',
+                ],
+                403
+            );
+        }
+
+        // Sanitize and validate input
+        $zip_url = isset( $params['zip_url'] ) ? esc_url_raw( $params['zip_url'] ) : '';
+
+        if ( empty( $zip_url ) ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'ZIP URL is required for installation.',
+                ],
+                400
+            );
+        }
+
+        // Load Theme Installer
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-theme-installer.php';
+
+        // Install theme
+        $result = Nova_X_Theme_Installer::install_theme( $zip_url );
+
+        if ( $result['success'] ) {
+            return new WP_REST_Response(
+                [
+                    'success'     => true,
+                    'theme_slug'  => esc_html( $result['theme_slug'] ),
+                    'theme_name'  => esc_html( $result['theme_name'] ),
+                    'message'     => $result['message'],
+                ],
+                200
+            );
+        } else {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => $result['message'],
+                ],
+                500
+            );
+        }
+    }
+
+    /**
+     * Handle reset usage tracker request
+     *
+     * @param WP_REST_Request $request REST request object.
+     * @return WP_REST_Response|WP_Error Response object.
+     */
+    public function handle_reset_usage_tracker( WP_REST_Request $request ) {
+        $params = $request->get_json_params();
+
+        // Verify nonce for CSRF protection
+        if ( ! isset( $params['nonce'] ) || ! wp_verify_nonce( $params['nonce'], 'nova_x_nonce' ) ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'Invalid nonce. Please refresh the page and try again.',
+                ],
+                403
+            );
+        }
+
+        // Load Usage Tracker
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-usage-tracker.php';
+
+        // Reset tracker
+        $result = Nova_X_Usage_Tracker::reset_tracker();
+
+        if ( $result ) {
+            return new WP_REST_Response(
+                [
+                    'success' => true,
+                    'message' => 'Usage tracker reset successfully.',
+                ],
+                200
+            );
+        } else {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'Failed to reset usage tracker.',
                 ],
                 500
             );

@@ -65,6 +65,8 @@ final class Nova_X_Core {
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-rest.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-generator.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-theme-exporter.php';
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-theme-installer.php';
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-usage-tracker.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-admin.php';
         // Initialize REST API
         new Nova_X_REST();
@@ -160,10 +162,13 @@ final class Nova_X_Core {
             'nova-x-admin',
             'NovaXData',
             [
-                'nonce'          => wp_create_nonce( 'nova_x_nonce' ),
-                'restUrl'        => esc_url_raw( rest_url( 'nova-x/v1/generate-theme' ) ),
-                'rotateTokenUrl' => esc_url_raw( rest_url( 'nova-x/v1/rotate-token' ) ),
-                'exportThemeUrl' => esc_url_raw( rest_url( 'nova-x/v1/export-theme' ) ),
+                'nonce'                => wp_create_nonce( 'nova_x_nonce' ),
+                'restUrl'              => esc_url_raw( rest_url( 'nova-x/v1/generate-theme' ) ),
+                'rotateTokenUrl'       => esc_url_raw( rest_url( 'nova-x/v1/rotate-token' ) ),
+                'exportThemeUrl'       => esc_url_raw( rest_url( 'nova-x/v1/export-theme' ) ),
+                'previewThemeUrl'      => esc_url_raw( rest_url( 'nova-x/v1/preview-theme' ) ),
+                'installThemeUrl'      => esc_url_raw( rest_url( 'nova-x/v1/install-theme' ) ),
+                'resetTrackerUrl'      => esc_url_raw( rest_url( 'nova-x/v1/reset-usage-tracker' ) ),
             ]
         );
     }

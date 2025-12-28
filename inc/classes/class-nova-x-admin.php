@@ -173,6 +173,34 @@ class Nova_X_Admin {
 
             <hr>
 
+            <h2>Usage Statistics</h2>
+            <?php
+            // Load Usage Tracker
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-usage-tracker.php';
+            $total_tokens = Nova_X_Usage_Tracker::get_formatted_tokens();
+            $total_cost = Nova_X_Usage_Tracker::get_formatted_cost();
+            ?>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">Total Tokens Used</th>
+                    <td>
+                        <strong style="font-size: 16px;">🔢 <?php echo esc_html( $total_tokens ); ?></strong>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Total Estimated Cost</th>
+                    <td>
+                        <strong style="font-size: 16px;">💵 $<?php echo esc_html( $total_cost ); ?> USD</strong>
+                    </td>
+                </tr>
+            </table>
+            <p>
+                <button type="button" class="button" id="nova_x_reset_tracker">🔄 Reset Tracker</button>
+                <span id="nova_x_reset_status" style="margin-left: 10px; font-weight: bold;"></span>
+            </p>
+
+            <hr>
+
             <h2>Generate Theme</h2>
             <p>
                 <input type="text" id="nova_x_site_title" placeholder="Site Title" class="regular-text" />

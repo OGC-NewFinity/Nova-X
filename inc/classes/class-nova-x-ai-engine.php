@@ -328,6 +328,12 @@ class Nova_X_AI_Engine {
             ];
         }
 
+        // Track usage (tokens and cost)
+        if ( isset( $data['usage']['total_tokens'] ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-usage-tracker.php';
+            Nova_X_Usage_Tracker::log_usage( 'openai', absint( $data['usage']['total_tokens'] ) );
+        }
+
         // Return success response
         return [
             'success'  => true,
@@ -460,6 +466,13 @@ class Nova_X_AI_Engine {
                 'success' => false,
                 'message' => 'Anthropic Error: Empty response from API.',
             ];
+        }
+
+        // Track usage (tokens and cost)
+        if ( isset( $data['usage']['input_tokens'] ) && isset( $data['usage']['output_tokens'] ) ) {
+            $total_tokens = absint( $data['usage']['input_tokens'] ) + absint( $data['usage']['output_tokens'] );
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-usage-tracker.php';
+            Nova_X_Usage_Tracker::log_usage( 'anthropic', $total_tokens );
         }
 
         // Return success response
@@ -598,6 +611,12 @@ class Nova_X_AI_Engine {
             ];
         }
 
+        // Track usage (tokens and cost)
+        if ( isset( $data['usage']['total_tokens'] ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-usage-tracker.php';
+            Nova_X_Usage_Tracker::log_usage( 'groq', absint( $data['usage']['total_tokens'] ) );
+        }
+
         // Return success response
         return [
             'success'  => true,
@@ -732,6 +751,12 @@ class Nova_X_AI_Engine {
                 'success' => false,
                 'message' => 'Mistral Error: Empty response from API.',
             ];
+        }
+
+        // Track usage (tokens and cost)
+        if ( isset( $data['usage']['total_tokens'] ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-usage-tracker.php';
+            Nova_X_Usage_Tracker::log_usage( 'mistral', absint( $data['usage']['total_tokens'] ) );
         }
 
         // Return success response
