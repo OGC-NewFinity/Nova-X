@@ -1,14 +1,15 @@
-# 02 — TECHNICAL ARCHITECTURE  
-## 🏗️ System Architecture & Logic Flow
+# Technical Architecture
 
-📄 **Document Version:** 1.0.0  
-🧱 **Environment:** Docker-Local  
-🧠 **Architecture Style:** Decoupled · Modular · High-Performance  
-⚙️ **Design Principle:** Zero-latency UX, maximum isolation  
+## System Architecture & Logic Flow
+
+**Document Version:** 1.0.0  
+**Environment:** Docker-Local  
+**Architecture Style:** Decoupled · Modular · High-Performance  
+**Design Principle:** Zero-latency UX, maximum isolation  
 
 ---
 
-## 🎯 Technical Objective
+## Technical Objective
 
 The Nova-X technical architecture is designed to establish a **decoupled, high-performance execution model** that optimizes communication between:
 
@@ -22,36 +23,32 @@ All while preserving a **native, zero-latency WordPress Admin experience**.
 
 ---
 
-## 🧩 Core Architectural Layers
+## Core Architectural Layers
 
 Nova-X is engineered with a **strict separation of concerns**, ensuring long-term stability, maintainability, and horizontal scalability.
 
-
-::contentReference[oaicite:0]{index=0}
-
-
-### 🖥️ Frontend Layer
+### Frontend Layer
 - React-driven **Single Page Application (SPA)**
 - Styled with **scoped Tailwind CSS**
 - Delivers a **native SaaS-grade experience** inside WP Admin
 
 ---
 
-### 🔁 Controller Layer
+### Controller Layer
 - PHP-based **REST API handlers**
 - Acts as the secure bridge between UI and server logic
 - Fully asynchronous communication model
 
 ---
 
-### 🧠 Intelligence Layer
+### Intelligence Layer
 - Proprietary **Prompt Engineering Engine**
 - Converts raw user intent into **structured, deterministic AI requests**
 - Abstracts AI complexity away from the user
 
 ---
 
-### 💾 Storage Layer
+### Storage Layer
 - Custom **MariaDB tables**
 - Optimized for:
   - AI request logging
@@ -61,19 +58,15 @@ Nova-X is engineered with a **strict separation of concerns**, ensuring long-ter
 
 ---
 
-## 🛠️ Component Specifications
+## Component Specifications
 
-### 🔁 Execution Flow  
+### Execution Flow  
 **User UI ➜ REST Controller ➜ AI Engine ➜ WordPress Core Injection**
-
-
-::contentReference[oaicite:1]{index=1}
-
 
 ---
 
-### 1️⃣ AI Orchestrator  
-**`class-nova-x-openai.php`**
+### 1. AI Orchestrator  
+**`class-nova-x-ai-engine.php`**
 
 - Manages all external AI API handshakes  
 - Secure API key transmission  
@@ -82,7 +75,7 @@ Nova-X is engineered with a **strict separation of concerns**, ensuring long-ter
 
 ---
 
-### 2️⃣ REST Gateway  
+### 2. REST Gateway  
 **`class-nova-x-rest.php`**
 
 - Defines secure, custom REST endpoints  
@@ -91,7 +84,7 @@ Nova-X is engineered with a **strict separation of concerns**, ensuring long-ter
 
 ---
 
-### 3️⃣ The Generator  
+### 3. The Generator  
 **`class-nova-x-generator.php`**
 
 - Core execution engine  
@@ -104,7 +97,7 @@ Nova-X is engineered with a **strict separation of concerns**, ensuring long-ter
 
 ---
 
-## ⚡ Technical Stack & Dependencies
+## Technical Stack & Dependencies
 
 | Technology | Implementation |
 |---------|----------------|
@@ -115,11 +108,11 @@ Nova-X is engineered with a **strict separation of concerns**, ensuring long-ter
 
 ---
 
-## 💾 Database Architecture
+## Database Architecture
 
 Nova-X adopts a **clean-slate persistence strategy** to maintain performance and observability.
 
-### 📊 Custom Tables
+### Custom Tables
 
 - **`_novax_usage_logs`**  
   Tracks AI credit consumption and request timestamps in real time
@@ -132,46 +125,42 @@ Nova-X adopts a **clean-slate persistence strategy** to maintain performance and
 
 ---
 
-## 🔒 Security & Data Integrity
+## Security & Data Integrity
 
-### 🔐 Encryption
+### Encryption
 - API keys stored using **AES-256 encryption**
 - Encrypted at rest within the local database
 
-### 🛡️ Validation
+### Validation
 - Full compliance with WordPress security standards:
   - Nonces
   - Input sanitization
   - Capability checks
 
-### 🧩 Isolation
+### Isolation
 - Namespaced PHP, JS, and CSS assets  
 - Zero collision risk with themes or third-party plugins
 
 ---
 
-## 📈 Performance Optimization (Docker)
+## Performance Optimization (Docker)
 
-
-::contentReference[oaicite:2]{index=2}
-
-
-### ⚙️ Async Workers
+### Async Workers
 - Background processing for bulk generation
 - Prevents PHP execution timeouts
 
-### 🧠 Object Caching
+### Object Caching
 - Native support for Redis / Memcached  
 - Automatically detected within the Docker stack
 
-### 📦 Asset Bundling
+### Asset Bundling
 - Minified, production-ready JS & CSS  
 - Served directly from the local filesystem  
 - Zero CDN dependency, maximum speed
 
 ---
 
-## 🧠 Architectural Takeaway
+## Architectural Takeaway
 
 Nova-X is not layered for convenience.  
 It is layered for **control**.
@@ -183,3 +172,4 @@ Each bottleneck is engineered out.
 > _Fast locally. Scalable globally. Stable by design._
 
 ---
+

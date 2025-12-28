@@ -54,7 +54,7 @@ Nova-X supports multiple AI providers, giving you flexibility to choose the best
 - **Provider Fallback**: Automatic failover to backup providers (coming soon)
 - **Usage Tracking**: Monitor API usage per provider (coming soon)
 
-For detailed information on managing API keys, see [API Key Manager Documentation](docs/07-settings-page-api-key-manager.md).
+For detailed information on managing API keys, see [API Key Manager Documentation](docs/07_SETTINGS_PAGE_API_KEY_MANAGER.md).
 
 ---
 

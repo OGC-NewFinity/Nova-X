@@ -1,14 +1,15 @@
-# 04 — UI / UX BLUEPRINT  
-## 🎨 Design Philosophy: **The SaaS Experience**
+# Admin UI Structure
 
-📄 **Document Version:** 1.0.0  
-🧱 **Environment:** Docker-Local  
-🧠 **UX Objective:** SaaS-grade speed inside WordPress  
-⚙️ **Interaction Model:** Zero-refresh · Real-time · Deterministic  
+## Design Philosophy: The SaaS Experience
+
+**Document Version:** 1.0.0  
+**Environment:** Docker-Local  
+**UX Objective:** SaaS-grade speed inside WordPress  
+**Interaction Model:** Zero-refresh · Real-time · Deterministic  
 
 ---
 
-## 🎯 UX Objective
+## UX Objective
 
 Nova-X is designed to **feel like a modern standalone SaaS**—while living entirely inside the WordPress Admin.
 
@@ -21,15 +22,11 @@ By combining **React** and **Tailwind CSS**, the interface delivers:
 
 ---
 
-## 🗺️ Interface Hierarchy
+## Interface Hierarchy
 
 The Nova-X dashboard is structured into **four high-efficiency zones**, each optimized for a specific cognitive task.
 
-
-::contentReference[oaicite:0]{index=0}
-
-
-### 🧭 Zone 1 — Global Navigation
+### Zone 1 — Global Navigation
 - Persistent sidebar  
 - Fast switching between:
   - Architect
@@ -40,14 +37,14 @@ The Nova-X dashboard is structured into **four high-efficiency zones**, each opt
 
 ---
 
-### 🧠 Zone 2 — The Command Center
+### Zone 2 — The Command Center
 - Primary workspace  
 - AI prompts are authored, refined, and executed here  
 - Designed for focus, not distraction
 
 ---
 
-### 👁️ Zone 3 — Live Preview Pane
+### Zone 3 — Live Preview Pane
 - Real-time visualization of:
   - Gutenberg blocks
   - Content drafts
@@ -55,7 +52,7 @@ The Nova-X dashboard is structured into **four high-efficiency zones**, each opt
 
 ---
 
-### 📊 Zone 4 — Resource Bar
+### Zone 4 — Resource Bar
 - Header or footer element  
 - Displays:
   - Token consumption
@@ -65,7 +62,7 @@ The Nova-X dashboard is structured into **four high-efficiency zones**, each opt
 
 ---
 
-## 🛠️ Visual Design Tokens
+## Visual Design Tokens
 
 Nova-X enforces a **strict design token system** via Tailwind configuration to maintain visual coherence and performance.
 
@@ -81,25 +78,21 @@ Nova-X enforces a **strict design token system** via Tailwind configuration to m
 
 ---
 
-## 🔄 The User Journey (Onboarding)
+## The User Journey (Onboarding)
 
-### 🔁 Visual Flow  
+### Visual Flow  
 **Welcome ➜ API Setup ➜ Site Definition ➜ First Generation**
-
-
-::contentReference[oaicite:1]{index=1}
-
 
 ---
 
-### 1️⃣ Handshake & Authentication
+### 1. Handshake & Authentication
 - User enters encrypted API key  
 - Real-time connection test executed via `class-nova-x-rest.php`  
 - Immediate success or failure feedback
 
 ---
 
-### 2️⃣ Niche Definition
+### 2. Niche Definition
 - Guided wizard experience  
 - User defines:
   - Brand voice
@@ -109,18 +102,18 @@ Nova-X enforces a **strict design token system** via Tailwind configuration to m
 
 ---
 
-### 3️⃣ The First “Bake”
+### 3. The First "Bake"
 - Nova-X generates a sample landing section  
 - Demonstrates synergy between:
   - **The Architect**
   - **Media Lab**  
-- Instant “aha” moment
+- Instant "aha" moment
 
 ---
 
-## ⚡ Interactivity Specifications
+## Interactivity Specifications
 
-### 🌊 AI Streaming UI
+### AI Streaming UI
 - No static spinners  
 - Uses **Server-Sent Events (SSE)**  
 - AI output streams live into the interface  
@@ -128,15 +121,15 @@ Nova-X enforces a **strict design token system** via Tailwind configuration to m
 
 ---
 
-### 🧱 Gutenberg Live-Sync
-- **“Send to Editor”** action  
+### Gutenberg Live-Sync
+- **"Send to Editor"** action  
 - Instantly migrates AI-generated JSON patterns  
 - From React dashboard → Native WP Editor  
 - Zero export/import friction
 
 ---
 
-### 📱 Responsive Workbench
+### Responsive Workbench
 - Fully responsive dashboard  
 - Usable on:
   - Desktop
@@ -146,18 +139,18 @@ Nova-X enforces a **strict design token system** via Tailwind configuration to m
 
 ---
 
-## 📉 State Management & Feedback
+## State Management & Feedback
 
-### ✅ Success Notifications
+### Success Notifications
 - Toast messages (top-right)  
 - Clear confirmation for completed actions
 
-### ⚠️ Error Handling
+### Error Handling
 - Human-readable explanations  
 - No stack traces, no jargon  
 - Covers API timeouts, token exhaustion, and connectivity issues
 
-### ⏳ Progress Indicators
+### Progress Indicators
 - Skeleton loaders  
 - Progress bars for:
   - Multi-image generation
@@ -165,14 +158,14 @@ Nova-X enforces a **strict design token system** via Tailwind configuration to m
 
 ---
 
-## 🔒 Admin Integration
+## Admin Integration
 
-### 🧩 Native Feel
+### Native Feel
 - Wrapped inside standard WordPress Admin shell  
-- Retains Nova-X’s own **Tailwind-scoped identity**
+- Retains Nova-X's own **Tailwind-scoped identity**
 
-### 🗂️ Menu Architecture
-- Top-level **“Nova-X”** menu  
+### Menu Architecture
+- Top-level **"Nova-X"** menu  
 - Sub-pages:
   - Dashboard
   - Architect
@@ -183,15 +176,16 @@ Clean. Predictable. Scalable.
 
 ---
 
-## 🧠 UX Takeaway
+## UX Takeaway
 
-Nova-X doesn’t look like WordPress.  
+Nova-X doesn't look like WordPress.  
 It **outperforms** it.
 
 Every pixel serves speed.  
 Every interaction reduces friction.  
-Every workflow respects the user’s time.
+Every workflow respects the user's time.
 
-> _If it feels fast, it is fast. If it feels simple, it’s engineered._
+> _If it feels fast, it is fast. If it feels simple, it's engineered._
 
 ---
+

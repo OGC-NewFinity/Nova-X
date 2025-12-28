@@ -1,14 +1,15 @@
-# 08 — SECURITY & PRIVACY  
-## 🔐 Defense-in-Depth for AI-Native WordPress Infrastructure
+# Security Policy
 
-📄 **Document Version:** 1.0.0  
-🧱 **Environment:** Docker-Local  
-🧠 **Security Posture:** Zero-Trust · Least Privilege · Local-First  
-⚙️ **Compliance Baseline:** WordPress Standards + Modern Cryptography  
+## Defense-in-Depth for AI-Native WordPress Infrastructure
+
+**Document Version:** 1.0.0  
+**Environment:** Docker-Local  
+**Security Posture:** Zero-Trust · Least Privilege · Local-First  
+**Compliance Baseline:** WordPress Standards + Modern Cryptography  
 
 ---
 
-## 🛡️ Security Architecture Overview
+## Security Architecture Overview
 
 Nova-X implements a **defense-in-depth security model** engineered to protect:
 - User data
@@ -22,38 +23,34 @@ All controls align with **strict WordPress security standards** and **modern enc
 
 ---
 
-## 🔐 Data Encryption & Storage
+## Data Encryption & Storage
 
-
-::contentReference[oaicite:0]{index=0}
-
-
-### 🔑 API Key Protection
+### API Key Protection
 - External service keys (OpenAI, Claude, Stripe) stored using **AES-256 encryption**
 - Encrypted at rest within the local **MariaDB** database
 
-### 🧱 Environment Isolation
+### Environment Isolation
 - Docker environments support encrypted **`.env` injection**
 - Sensitive credentials can bypass database storage entirely
 - Never exposed in the UI or logs
 
-### 🧬 Database Prefixing
+### Database Prefixing
 - All Nova-X tables use **unique prefixes**
 - Prevents unauthorized SQL injection and cross-table leakage
 
 ---
 
-## 🔓 Authentication & Access Control
+## Authentication & Access Control
 
-### 🛂 Capability Shielding
+### Capability Shielding
 - All administrative endpoints restricted to users with **`manage_options`**
 - Enforces least-privilege access
 
-### 🧾 Nonce Validation
+### Nonce Validation
 - Every REST and AJAX request requires a **valid WordPress Nonce**
 - Mitigates **CSRF** attacks across the dashboard
 
-### 🧠 Session Management
+### Session Management
 - AI session tokens are:
   - Short-lived
   - Bound to user ID and site URL
@@ -61,44 +58,40 @@ All controls align with **strict WordPress security standards** and **modern enc
 
 ---
 
-## 🧼 Content Sanitization & Integrity
+## Content Sanitization & Integrity
 
-
-::contentReference[oaicite:1]{index=1}
-
-
-### 🧹 Multi-Pass Scrubbing
+### Multi-Pass Scrubbing
 - AI-generated HTML processed through **`wp_kses`**
 - Removes:
   - Malicious scripts
   - Unauthorized tags
 - Sanitized before database persistence
 
-### 🧪 Input Filtering
+### Input Filtering
 - User prompts and settings sanitized using:
   - `sanitize_text_field`
   - `absint` (numeric values)
 - No raw input reaches execution layers
 
-### 🖼️ Media Validation
+### Media Validation
 - DALL·E 3 images validated for **MIME-type integrity**
 - Verified before registration in the WordPress Media Library
 
 ---
 
-## 🧑‍⚖️ User Privacy & Data Sovereignty
+## User Privacy & Data Sovereignty
 
-### 🔕 Telemetry Opt-Out
+### Telemetry Opt-Out
 - Users fully control anonymized usage telemetry
 - Opt-out available at any time
 
-### 🚫 No-Logging Policy
+### No-Logging Policy
 - Prompts and generated content remain **local**
 - **No user-generated text** is stored on:
   - Licensing servers
   - Update servers
 
-### 📜 GDPR Compliance
+### GDPR Compliance
 - Built-in tools to:
   - Export AI usage logs
   - Delete historical data
@@ -106,35 +99,31 @@ All controls align with **strict WordPress security standards** and **modern enc
 
 ---
 
-## 🌐 External Communication Security
+## External Communication Security
 
-
-::contentReference[oaicite:2]{index=2}
-
-
-### 🔒 SSL/TLS Enforcement
+### SSL/TLS Enforcement
 - All external communication enforced over **HTTPS**
 - Minimum **TLS 1.2+**
 - Applies to:
   - AI Orchestrators
   - Billing Gateways
 
-### 🧾 IP Restriction
+### IP Restriction
 - Licensing server supports **IP whitelisting**
 - Ensures only authorized environments validate professional keys
 
 ---
 
-## 📊 Audit & Compliance
+## Audit & Compliance
 
-### 🕵️ Real-Time Logging
+### Real-Time Logging
 - Every AI request logged locally with:
   - Timestamp
   - User ID
   - Token count
 - Enables administrative auditing and cost analysis
 
-### 🧪 Security Patching
+### Security Patching
 - Automated vulnerability scanning during development
 - Keeps PHP and React dependencies:
   - Up to date
@@ -142,7 +131,38 @@ All controls align with **strict WordPress security standards** and **modern enc
 
 ---
 
-## 🧠 Security Takeaway
+## Supported Versions
+
+| Version | Supported          |
+| ------- | ------------------ |
+| 1.0.x   | :white_check_mark: |
+| < 1.0   | :x:                |
+
+---
+
+## Reporting a Vulnerability
+
+If you discover a security vulnerability in Nova-X, please report it responsibly:
+
+1. **Do not** open a public GitHub issue
+2. Email security concerns to the development team
+3. Include:
+   - Description of the vulnerability
+   - Steps to reproduce (if applicable)
+   - Potential impact assessment
+   - Suggested fix (if available)
+
+We will acknowledge receipt within 48 hours and provide an estimated timeline for resolution. Critical vulnerabilities will be addressed with high priority.
+
+**What to expect:**
+- We will investigate all reports thoroughly
+- We will keep you informed of our progress
+- We will credit you in the security advisory (if desired)
+- We will work with you to understand and resolve the issue
+
+---
+
+## Security Takeaway
 
 Nova-X treats security as **infrastructure**, not an afterthought.
 
@@ -154,5 +174,3 @@ Auditable, compliant, and resilient.
 
 ---
 
-### ➡️ Next Step
-Would you like me to prepare **09 — OPERATIONS & SUPPORT** next?

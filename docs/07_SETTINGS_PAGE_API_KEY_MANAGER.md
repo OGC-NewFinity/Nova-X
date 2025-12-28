@@ -4,6 +4,8 @@
 
 Nova-X supports multiple AI providers, allowing users and administrators to manage API keys for different services. This document outlines how the API key management system works.
 
+---
+
 ## Supported Providers
 
 Nova-X supports the following AI providers:
@@ -13,6 +15,8 @@ Nova-X supports the following AI providers:
 - **Anthropic Claude** - Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku
 - **Mistral AI** - Mistral Large, Mistral Medium
 - **Cohere** - Command, Command Light
+
+---
 
 ## API Key Storage
 
@@ -26,6 +30,8 @@ For example:
 - OpenAI: `nova_x_openai_api_key`
 - Gemini: `nova_x_gemini_api_key`
 - Claude: `nova_x_claude_api_key`
+
+---
 
 ## Managing API Keys
 
@@ -66,12 +72,16 @@ $status = Nova_X_Provider_Manager::get_providers_status();
 // Returns array with provider name and has_key status
 ```
 
+---
+
 ## Security Considerations
 
 1. **Permissions**: Only users with `manage_options` capability can save API keys
 2. **Sanitization**: All API keys are sanitized using `sanitize_text_field()` before storage
 3. **No Exposure**: API keys are never exposed to the frontend or in REST API responses
 4. **Encryption**: Consider implementing encryption for production environments (WordPress Secrets API)
+
+---
 
 ## REST API Endpoints
 
@@ -110,6 +120,8 @@ fetch('/wp-json/nova-x/v1/save-key', {
 }
 ```
 
+---
+
 ## Switching Providers
 
 To switch between AI providers programmatically:
@@ -120,9 +132,13 @@ $ai_engine->set_provider( 'gemini' ); // or 'claude', 'mistral', etc.
 $result = $ai_engine->generate( $prompt );
 ```
 
+---
+
 ## Default Provider
 
 The default provider is **OpenAI**. Users can change the default provider in settings.
+
+---
 
 ## Future Enhancements
 
@@ -131,4 +147,6 @@ The default provider is **OpenAI**. Users can change the default provider in set
 - [ ] Usage tracking per provider
 - [ ] Provider fallback chain configuration
 - [ ] API key encryption at rest
+
+---
 
