@@ -36,21 +36,91 @@ class Nova_X_Admin {
 
         add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
         add_action( 'admin_init', [ $this, 'register_settings' ] );
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
     }
 
     /**
      * Add admin menu & submenus
      */
     public function add_admin_menu() {
-        // Add Settings submenu under the main Nova-X menu (React dashboard)
-        add_submenu_page(
-            'nova-x',                  // Parent slug (must match the React root menu)
-            'Nova-X Settings',         // Page title
-            'Settings',                // Menu title
-            'manage_options',          // Capability
-            'nova-x-settings',         // Menu slug
-            [ $this, 'render_settings_page' ]  // Callback
+        // Check user capabilities
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        // Main menu item
+        add_menu_page(
+            esc_html__( 'Nova-X', 'nova-x' ),
+            esc_html__( 'Nova-X', 'nova-x' ),
+            'manage_options',
+            'nova-x-dashboard',
+            [ $this, 'render_dashboard_page' ],
+            'dashicons-art',
+            66
         );
+
+        // Dashboard submenu (first item, same as main menu)
+        add_submenu_page(
+            'nova-x-dashboard',
+            esc_html__( 'Nova-X Dashboard', 'nova-x' ),
+            esc_html__( 'Dashboard', 'nova-x' ),
+            'manage_options',
+            'nova-x-dashboard',
+            [ $this, 'render_dashboard_page' ]
+        );
+
+        // Settings submenu
+        add_submenu_page(
+            'nova-x-dashboard',
+            esc_html__( 'Nova-X Settings', 'nova-x' ),
+            esc_html__( 'Settings', 'nova-x' ),
+            'manage_options',
+            'nova-x-settings',
+            [ $this, 'render_settings_page' ]
+        );
+
+        // Architecture Manager submenu
+        add_submenu_page(
+            'nova-x-dashboard',
+            esc_html__( 'Architecture Manager', 'nova-x' ),
+            esc_html__( 'Architecture', 'nova-x' ),
+            'manage_options',
+            'nova-x-architecture',
+            [ $this, 'render_architecture_page' ]
+        );
+
+        // License submenu
+        add_submenu_page(
+            'nova-x-dashboard',
+            esc_html__( 'License', 'nova-x' ),
+            esc_html__( 'License', 'nova-x' ),
+            'manage_options',
+            'nova-x-license',
+            [ $this, 'render_license_page' ]
+        );
+
+        // Exported Themes submenu (optional)
+        add_submenu_page(
+            'nova-x-dashboard',
+            esc_html__( 'Exported Themes', 'nova-x' ),
+            esc_html__( 'Exported Themes', 'nova-x' ),
+            'manage_options',
+            'nova-x-exports',
+            [ $this, 'render_exports_page' ]
+        );
+
+        // Beta Tools submenu (optional, can be toggled)
+        $beta_enabled = apply_filters( 'nova_x_enable_beta_tools', false );
+        if ( $beta_enabled ) {
+            add_submenu_page(
+                'nova-x-dashboard',
+                esc_html__( 'Beta Tools', 'nova-x' ),
+                esc_html__( 'Beta Tools', 'nova-x' ),
+                'manage_options',
+                'nova-x-beta',
+                [ $this, 'render_beta_page' ]
+            );
+        }
     }
 
     /**
@@ -103,6 +173,367 @@ class Nova_X_Admin {
         
         // Return empty string to prevent plain text storage in options
         return '';
+    }
+
+    /**
+     * Enqueue admin assets
+     *
+     * @param string $hook Current admin page hook.
+     */
+    public function enqueue_admin_assets( $hook ) {
+        // Check if we're on a Nova-X admin page
+        $nova_x_pages = [
+            'toplevel_page_nova-x-dashboard',
+            'nova-x_page_nova-x-dashboard',
+            'nova-x_page_nova-x-settings',
+            'nova-x_page_nova-x-architecture',
+            'nova-x_page_nova-x-license',
+            'nova-x_page_nova-x-exports',
+            'nova-x_page_nova-x-beta',
+        ];
+
+        if ( ! in_array( $hook, $nova_x_pages, true ) ) {
+            return;
+        }
+
+        // Enqueue admin CSS
+        wp_enqueue_style(
+            'nova-x-admin-style',
+            NOVA_X_URL . 'admin/css/nova-x-admin.css',
+            [],
+            $this->plugin_version
+        );
+
+        // Enqueue dashboard JS for dashboard page
+        if ( 'toplevel_page_nova-x-dashboard' === $hook || 'nova-x_page_nova-x-dashboard' === $hook ) {
+            wp_enqueue_script(
+                'nova-x-dashboard',
+                NOVA_X_URL . 'admin/js/nova-x-dashboard.js',
+                [ 'jquery' ],
+                $this->plugin_version,
+                true
+            );
+
+            wp_localize_script(
+                'nova-x-dashboard',
+                'novaXDashboard',
+                [
+                    'nonce'            => wp_create_nonce( 'wp_rest' ),
+                    'generateNonce'    => wp_create_nonce( 'nova_x_nonce' ),
+                    'restUrl'          => esc_url_raw( rest_url( 'nova-x/v1/' ) ),
+                    'generateThemeUrl' => esc_url_raw( rest_url( 'nova-x/v1/generate-theme' ) ),
+                    'previewThemeUrl'  => esc_url_raw( rest_url( 'nova-x/v1/preview-theme' ) ),
+                    'usageStatsUrl'    => esc_url_raw( rest_url( 'nova-x/v1/get-usage-stats' ) ),
+                    'dashboardUrl'     => esc_url_raw( admin_url( 'admin.php?page=nova-x-dashboard' ) ),
+                ]
+            );
+        }
+
+        // Enqueue settings JS for settings page
+        if ( 'nova-x_page_nova-x-settings' === $hook ) {
+            wp_enqueue_script(
+                'nova-x-admin',
+                NOVA_X_URL . 'assets/admin.js',
+                [ 'jquery' ],
+                $this->plugin_version,
+                true
+            );
+
+            wp_localize_script(
+                'nova-x-admin',
+                'NovaXData',
+                [
+                    'nonce'            => wp_create_nonce( 'nova_x_nonce' ),
+                    'restUrl'          => esc_url_raw( rest_url( 'nova-x/v1/generate-theme' ) ),
+                    'rotateTokenUrl'   => esc_url_raw( rest_url( 'nova-x/v1/rotate-token' ) ),
+                    'exportThemeUrl'   => esc_url_raw( rest_url( 'nova-x/v1/export-theme' ) ),
+                    'previewThemeUrl'  => esc_url_raw( rest_url( 'nova-x/v1/preview-theme' ) ),
+                    'installThemeUrl'  => esc_url_raw( rest_url( 'nova-x/v1/install-theme' ) ),
+                    'resetTrackerUrl'  => esc_url_raw( rest_url( 'nova-x/v1/reset-usage-tracker' ) ),
+                ]
+            );
+        }
+    }
+
+    /**
+     * Render dashboard page
+     */
+    public function render_dashboard_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nova-x' ) );
+        }
+
+        // Get current tab from URL
+        $current_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'generate';
+
+        // Render dashboard content with tabs
+        $this->render_dashboard_content( $current_tab );
+    }
+
+    /**
+     * Render dashboard content with tabs
+     *
+     * @param string $current_tab Current active tab.
+     */
+    private function render_dashboard_content( $current_tab ) {
+        $tabs = [
+            'generate'   => esc_html__( 'Generate Theme', 'nova-x' ),
+            'customize'  => esc_html__( 'Customize Output', 'nova-x' ),
+            'preview'    => esc_html__( 'Live Preview', 'nova-x' ),
+            'usage'      => esc_html__( 'Usage Stats', 'nova-x' ),
+            'exported'   => esc_html__( 'Exported Themes', 'nova-x' ),
+        ];
+
+        $dashboard_url = admin_url( 'admin.php?page=nova-x-dashboard' );
+        
+        // Load sidebar navigation
+        $sidebar_path = NOVA_X_PATH . 'admin/partials/dashboard/sidebar-navigation.php';
+        ?>
+        <div class="wrap nova-x-dashboard-wrap">
+            <div class="nova-x-dashboard-layout">
+                <?php if ( file_exists( $sidebar_path ) ) : ?>
+                    <?php include $sidebar_path; ?>
+                <?php endif; ?>
+                
+                <div class="nova-x-dashboard-main" id="nova-x-dashboard-main">
+                    <div class="nova-x-dashboard-header">
+                        <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+                        
+                        <!-- Keep top nav tabs for backward compatibility and mobile -->
+                        <nav class="nav-tab-wrapper nova-x-tab-wrapper nova-x-top-nav">
+                            <?php foreach ( $tabs as $tab_key => $tab_label ) : ?>
+                                <a href="<?php echo esc_url( add_query_arg( 'tab', $tab_key, $dashboard_url ) ); ?>" 
+                                   class="nav-tab <?php echo $current_tab === $tab_key ? 'nav-tab-active' : ''; ?>"
+                                   data-tab="<?php echo esc_attr( $tab_key ); ?>">
+                                    <?php echo esc_html( $tab_label ); ?>
+                                </a>
+                            <?php endforeach; ?>
+                        </nav>
+                    </div>
+
+                    <div class="nova-x-tab-content" id="nova-x-tab-content">
+                        <?php
+                        // Render all panels but hide inactive ones
+                        $all_tabs = [ 'generate', 'customize', 'preview', 'usage', 'exported' ];
+                        foreach ( $all_tabs as $tab_key ) {
+                            $is_active = ( $current_tab === $tab_key );
+                            echo '<div class="nova-x-tab-panel-wrapper" data-tab="' . esc_attr( $tab_key ) . '" style="' . ( $is_active ? '' : 'display: none;' ) . '">';
+                            
+                            switch ( $tab_key ) {
+                                case 'generate':
+                                    $this->render_generate_tab();
+                                    break;
+                                case 'customize':
+                                    $this->render_customize_tab();
+                                    break;
+                                case 'preview':
+                                    $this->render_preview_tab();
+                                    break;
+                                case 'usage':
+                                    $this->render_usage_tab();
+                                    break;
+                                case 'exported':
+                                    $this->render_exported_themes_tab();
+                                    break;
+                            }
+                            
+                            echo '</div>';
+                        }
+                        ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render Generate Theme tab
+     */
+    private function render_generate_tab() {
+        // Load the generate theme panel partial
+        $template_path = NOVA_X_PATH . 'admin/partials/dashboard/generate-theme-panel.php';
+        if ( file_exists( $template_path ) ) {
+            include $template_path;
+        } else {
+            // Fallback if template doesn't exist
+            ?>
+            <div class="nova-x-tab-pane" id="nova-x-generate-tab">
+                <h2><?php esc_html_e( 'Generate Theme', 'nova-x' ); ?></h2>
+                <p><?php esc_html_e( 'Template file not found. Please ensure generate-theme-panel.php exists.', 'nova-x' ); ?></p>
+            </div>
+            <?php
+        }
+    }
+
+    /**
+     * Render Customize Output tab
+     */
+    private function render_customize_tab() {
+        // Load the customize output panel partial
+        $template_path = NOVA_X_PATH . 'admin/partials/dashboard/customize-output-panel.php';
+        if ( file_exists( $template_path ) ) {
+            include $template_path;
+        } else {
+            // Fallback if template doesn't exist
+            ?>
+            <div class="nova-x-tab-pane" id="nova-x-customize-tab">
+                <h2><?php esc_html_e( 'Customize Output', 'nova-x' ); ?></h2>
+                <p><?php esc_html_e( 'Template file not found. Please ensure customize-output-panel.php exists.', 'nova-x' ); ?></p>
+            </div>
+            <?php
+        }
+    }
+
+    /**
+     * Render Live Preview tab
+     */
+    private function render_preview_tab() {
+        // Load the live preview panel partial
+        $template_path = NOVA_X_PATH . 'admin/partials/dashboard/live-preview-panel.php';
+        if ( file_exists( $template_path ) ) {
+            include $template_path;
+        } else {
+            // Fallback if template doesn't exist
+            ?>
+            <div class="nova-x-tab-pane" id="nova-x-preview-tab">
+                <h2><?php esc_html_e( 'Live Preview', 'nova-x' ); ?></h2>
+                <p><?php esc_html_e( 'Template file not found. Please ensure live-preview-panel.php exists.', 'nova-x' ); ?></p>
+            </div>
+            <?php
+        }
+    }
+
+    /**
+     * Render Usage Stats tab
+     */
+    private function render_usage_tab() {
+        // Load the usage stats panel partial
+        $template_path = NOVA_X_PATH . 'admin/partials/dashboard/usage-stats-panel.php';
+        if ( file_exists( $template_path ) ) {
+            include $template_path;
+        } else {
+            // Fallback if template doesn't exist
+            ?>
+            <div class="nova-x-tab-pane" id="nova-x-usage-tab">
+                <h2><?php esc_html_e( 'Usage Statistics', 'nova-x' ); ?></h2>
+                <p><?php esc_html_e( 'Template file not found. Please ensure usage-stats-panel.php exists.', 'nova-x' ); ?></p>
+            </div>
+            <?php
+        }
+    }
+
+    /**
+     * Render Exported Themes tab
+     */
+    private function render_exported_themes_tab() {
+        // Load the exported themes panel partial
+        $template_path = NOVA_X_PATH . 'admin/partials/dashboard/exported-themes-panel.php';
+        if ( file_exists( $template_path ) ) {
+            include $template_path;
+        } else {
+            // Fallback if template doesn't exist
+            ?>
+            <div class="nova-x-tab-pane" id="nova-x-exported-themes-tab">
+                <h2><?php esc_html_e( 'Exported Themes', 'nova-x' ); ?></h2>
+                <p><?php esc_html_e( 'Template file not found. Please ensure exported-themes-panel.php exists.', 'nova-x' ); ?></p>
+            </div>
+            <?php
+        }
+    }
+
+    /**
+     * Render architecture page
+     */
+    public function render_architecture_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nova-x' ) );
+        }
+        ?>
+        <div class="wrap">
+            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+            <p><?php esc_html_e( 'Manage theme architecture and building logic.', 'nova-x' ); ?></p>
+            <div class="nova-x-architecture-container">
+                <p><?php esc_html_e( 'Architecture management features coming soon.', 'nova-x' ); ?></p>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render license page
+     */
+    public function render_license_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nova-x' ) );
+        }
+        ?>
+        <div class="wrap">
+            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+            <p><?php esc_html_e( 'Manage your Nova-X license key.', 'nova-x' ); ?></p>
+            <div class="nova-x-license-container">
+                <form method="post" action="">
+                    <?php wp_nonce_field( 'nova_x_license_save', 'nova_x_license_nonce' ); ?>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">
+                                <label for="nova_x_license_key"><?php esc_html_e( 'License Key', 'nova-x' ); ?></label>
+                            </th>
+                            <td>
+                                <input type="text" 
+                                       id="nova_x_license_key" 
+                                       name="license_key" 
+                                       class="regular-text" 
+                                       value="<?php echo esc_attr( get_option( 'nova_x_license_key', '' ) ); ?>" 
+                                       placeholder="<?php esc_attr_e( 'Enter your license key...', 'nova-x' ); ?>" />
+                                <p class="description"><?php esc_html_e( 'Enter your Nova-X license key to activate premium features.', 'nova-x' ); ?></p>
+                            </td>
+                        </tr>
+                    </table>
+                    <?php submit_button( esc_html__( 'Save License', 'nova-x' ) ); ?>
+                </form>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render exports page
+     */
+    public function render_exports_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nova-x' ) );
+        }
+        ?>
+        <div class="wrap">
+            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+            <p><?php esc_html_e( 'View and manage your exported themes.', 'nova-x' ); ?></p>
+            <div class="nova-x-exports-container">
+                <p><?php esc_html_e( 'Exported themes will appear here.', 'nova-x' ); ?></p>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render beta page
+     */
+    public function render_beta_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nova-x' ) );
+        }
+        ?>
+        <div class="wrap">
+            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+            <p><?php esc_html_e( 'Beta tools and experimental features.', 'nova-x' ); ?></p>
+            <div class="notice notice-warning">
+                <p><strong><?php esc_html_e( 'Warning:', 'nova-x' ); ?></strong> <?php esc_html_e( 'These are beta features and may be unstable. Use at your own risk.', 'nova-x' ); ?></p>
+            </div>
+            <div class="nova-x-beta-container">
+                <p><?php esc_html_e( 'Beta tools coming soon.', 'nova-x' ); ?></p>
+            </div>
+        </div>
+        <?php
     }
 
     /**

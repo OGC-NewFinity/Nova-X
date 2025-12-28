@@ -95,10 +95,50 @@ class Nova_X_REST {
 
         register_rest_route(
             'nova-x/v1',
+            '/get-usage-stats',
+            [
+                'methods'             => 'GET',
+                'callback'            => [ $this, 'handle_get_usage_stats' ],
+                'permission_callback' => [ $this, 'check_permissions' ],
+            ]
+        );
+
+        register_rest_route(
+            'nova-x/v1',
             '/reset-usage-tracker',
             [
                 'methods'             => 'POST',
                 'callback'            => [ $this, 'handle_reset_usage_tracker' ],
+                'permission_callback' => [ $this, 'check_permissions' ],
+            ]
+        );
+
+        register_rest_route(
+            'nova-x/v1',
+            '/list-exported-themes',
+            [
+                'methods'             => 'GET',
+                'callback'            => [ $this, 'handle_list_exported_themes' ],
+                'permission_callback' => [ $this, 'check_permissions' ],
+            ]
+        );
+
+        register_rest_route(
+            'nova-x/v1',
+            '/delete-exported-theme',
+            [
+                'methods'             => 'POST',
+                'callback'            => [ $this, 'handle_delete_exported_theme' ],
+                'permission_callback' => [ $this, 'check_permissions' ],
+            ]
+        );
+
+        register_rest_route(
+            'nova-x/v1',
+            '/reexport-theme',
+            [
+                'methods'             => 'POST',
+                'callback'            => [ $this, 'handle_reexport_theme' ],
                 'permission_callback' => [ $this, 'check_permissions' ],
             ]
         );
@@ -502,6 +542,46 @@ class Nova_X_REST {
     }
 
     /**
+     * Handle get usage stats request
+     *
+     * @param WP_REST_Request $request REST request object.
+     * @return WP_REST_Response|WP_Error Response object.
+     */
+    public function handle_get_usage_stats( WP_REST_Request $request ) {
+        // Load Usage Tracker
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-usage-tracker.php';
+
+        // Get total stats
+        $total_tokens = Nova_X_Usage_Tracker::get_total_tokens();
+        $total_cost = Nova_X_Usage_Tracker::get_total_cost();
+
+        // Get provider data
+        $provider_data = Nova_X_Usage_Tracker::get_all_provider_data();
+
+        // Calculate percentages for each provider
+        $provider_stats = [];
+        foreach ( $provider_data as $provider => $data ) {
+            $token_percent = $total_tokens > 0 
+                ? round( ( $data['tokens'] / $total_tokens ) * 100, 1 ) 
+                : 0;
+
+            $provider_stats[] = [
+                'provider' => esc_html( $data['label'] ),
+                'tokens' => absint( $data['tokens'] ),
+                'cost' => round( floatval( $data['cost'] ), 4 ),
+                'percentage' => $token_percent,
+            ];
+        }
+
+        return rest_ensure_response( [
+            'success' => true,
+            'total_tokens' => absint( $total_tokens ),
+            'total_cost' => round( floatval( $total_cost ), 4 ),
+            'providers' => $provider_stats,
+        ] );
+    }
+
+    /**
      * Handle reset usage tracker request
      *
      * @param WP_REST_Request $request REST request object.
@@ -543,6 +623,116 @@ class Nova_X_REST {
                 ],
                 500
             );
+        }
+    }
+
+    /**
+     * Handle list exported themes request
+     *
+     * @param WP_REST_Request $request REST request object.
+     * @return WP_REST_Response|WP_Error Response object.
+     */
+    public function handle_list_exported_themes( WP_REST_Request $request ) {
+        // Load Theme Manager
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-theme-manager.php';
+
+        $themes = Nova_X_Theme_Manager::list_exported_themes();
+
+        return rest_ensure_response( [
+            'success' => true,
+            'themes'  => $themes,
+        ] );
+    }
+
+    /**
+     * Handle delete exported theme request
+     *
+     * @param WP_REST_Request $request REST request object.
+     * @return WP_REST_Response|WP_Error Response object.
+     */
+    public function handle_delete_exported_theme( WP_REST_Request $request ) {
+        $params = $request->get_json_params();
+
+        // Verify nonce for CSRF protection
+        if ( ! isset( $params['nonce'] ) || ! wp_verify_nonce( $params['nonce'], 'nova_x_nonce' ) ) {
+            return new WP_REST_Response( [
+                'success' => false,
+                'message' => 'Invalid nonce. Please refresh the page and try again.',
+            ], 403 );
+        }
+
+        // Sanitize and validate slug
+        $slug = isset( $params['slug'] ) ? sanitize_file_name( $params['slug'] ) : '';
+
+        if ( empty( $slug ) ) {
+            return new WP_REST_Response( [
+                'success' => false,
+                'message' => 'Theme slug is required.',
+            ], 400 );
+        }
+
+        // Load Theme Manager
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-theme-manager.php';
+
+        $result = Nova_X_Theme_Manager::delete_exported_theme( $slug );
+
+        if ( $result['success'] ) {
+            return new WP_REST_Response( [
+                'success' => true,
+                'message' => $result['message'],
+            ], 200 );
+        } else {
+            return new WP_REST_Response( [
+                'success' => false,
+                'message' => $result['message'],
+            ], 500 );
+        }
+    }
+
+    /**
+     * Handle reexport theme request
+     *
+     * @param WP_REST_Request $request REST request object.
+     * @return WP_REST_Response|WP_Error Response object.
+     */
+    public function handle_reexport_theme( WP_REST_Request $request ) {
+        $params = $request->get_json_params();
+
+        // Verify nonce for CSRF protection
+        if ( ! isset( $params['nonce'] ) || ! wp_verify_nonce( $params['nonce'], 'nova_x_nonce' ) ) {
+            return new WP_REST_Response( [
+                'success' => false,
+                'message' => 'Invalid nonce. Please refresh the page and try again.',
+            ], 403 );
+        }
+
+        // Sanitize and validate slug
+        $slug = isset( $params['slug'] ) ? sanitize_file_name( $params['slug'] ) : '';
+
+        if ( empty( $slug ) ) {
+            return new WP_REST_Response( [
+                'success' => false,
+                'message' => 'Theme slug is required.',
+            ], 400 );
+        }
+
+        // Load Theme Manager
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-theme-manager.php';
+
+        $result = Nova_X_Theme_Manager::reexport_theme( $slug );
+
+        if ( $result['success'] ) {
+            return new WP_REST_Response( [
+                'success'      => true,
+                'message'      => $result['message'],
+                'download_url' => esc_url_raw( $result['download_url'] ),
+                'filename'     => esc_html( $result['filename'] ),
+            ], 200 );
+        } else {
+            return new WP_REST_Response( [
+                'success' => false,
+                'message' => $result['message'],
+            ], 500 );
         }
     }
 

@@ -1,0 +1,12 @@
+/**
+ * Nova-X Admin Logo Styles
+ * 
+ * @package Nova-X
+ */
+
+.nova-x-logo {
+  display: block;
+  max-width: 220px;
+  margin: 30px auto;
+}
+

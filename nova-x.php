@@ -73,27 +73,8 @@ final class Nova_X_Core {
     }
 
     private function hooks() {
-        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
-        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_settings_script' ] );
-        // Register main React dashboard menu
-        add_action( 'admin_menu', [ $this, 'register_admin_menu' ] );
-    }
-
-    public function register_admin_menu() {
-        // Main menu for React dashboard
-        add_menu_page(
-            'Nova-X',
-            'Nova-X',
-            'manage_options',
-            'nova-x',
-            [ $this, 'render_admin_page' ], // React will attach here
-            'dashicons-hammer',
-            66
-        );
-    }    
-
-    public function render_admin_page() {
-        echo '<div id="nova-x-app-root"></div>';
+        // Menu registration is now handled in Nova_X_Admin class
+        // Script enqueuing is also handled in Nova_X_Admin class
     }
 
     public function enqueue_admin_assets( $hook ) {
@@ -176,3 +157,15 @@ final class Nova_X_Core {
 
 // Ignite the engine
 Nova_X_Core::instance();
+
+/**
+ * Load admin assets (logo styles)
+ */
+function nova_x_load_assets() {
+    // Load CSS globally (fixes logo not appearing)
+    wp_enqueue_style(
+        'nova-x-admin-style',
+        plugin_dir_url( __FILE__ ) . 'assets/css/admin.css'
+    );
+}
+add_action( 'admin_enqueue_scripts', 'nova_x_load_assets' );
