@@ -16,35 +16,46 @@ class Nova_X_AI_Engine {
 
     /**
      * Set the AI provider to use.
-     * 
+     *
      * @param string $provider Provider name (openai, gemini, claude, mistral, cohere, etc.)
      * @return void
      */
     public function set_provider( $provider ) {
-        // Switch logic for OpenAI, Gemini, Claude, etc.
         $supported_providers = defined( 'NOVA_X_SUPPORTED_PROVIDERS' ) ? NOVA_X_SUPPORTED_PROVIDERS : [];
-        
+
         if ( in_array( $provider, $supported_providers, true ) ) {
             $this->provider = sanitize_text_field( $provider );
-            
-            // TODO: Update API URL and endpoint based on provider
-            // switch ( $this->provider ) {
-            //     case 'openai':
-            //         $this->api_url = 'https://api.openai.com/v1/chat/completions';
-            //         break;
-            //     case 'gemini':
-            //         $this->api_url = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent';
-            //         break;
-            //     case 'claude':
-            //         $this->api_url = 'https://api.anthropic.com/v1/messages';
-            //         break;
-            //     // Add more providers as needed
-            // }
+
+            switch ( $this->provider ) {
+                case 'openai':
+                    $this->api_url = 'https://api.openai.com/v1/chat/completions';
+                    break;
+                case 'gemini':
+                    $this->api_url = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent';
+                    break;
+                case 'claude':
+                    $this->api_url = 'https://api.anthropic.com/v1/messages';
+                    break;
+                case 'mistral':
+                    $this->api_url = 'https://api.mistral.ai/v1/chat/completions';
+                    break;
+                case 'cohere':
+                    $this->api_url = 'https://api.cohere.ai/v1/chat';
+                    break;
+                default:
+                    $this->api_url = 'https://api.openai.com/v1/chat/completions';
+                    break;
+            }
         }
     }
 
+    /**
+     * Generate response from selected AI provider.
+     *
+     * @param string $prompt
+     * @return string|WP_Error
+     */
     public function generate( $prompt ) {
-
         if ( empty( $this->api_key ) ) {
             return new WP_Error(
                 'nova_x_missing_api_key',
@@ -93,4 +104,3 @@ class Nova_X_AI_Engine {
         return trim( $data['choices'][0]['message']['content'] );
     }
 }
-
