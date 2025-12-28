@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'NOVA_X_VERSION', '0.1.0' );
 define( 'NOVA_X_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NOVA_X_URL', plugin_dir_url( __FILE__ ) );
-define( 'NOVA_X_SUPPORTED_PROVIDERS', [ 'openai', 'gemini', 'claude', 'mistral', 'cohere' ] );
+define( 'NOVA_X_SUPPORTED_PROVIDERS', [ 'openai', 'anthropic', 'groq', 'mistral', 'gemini', 'claude', 'cohere' ] );
 
 /**
  * Main Class Initialization
@@ -55,6 +55,7 @@ final class Nova_X_Core {
 
     private function hooks() {
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_settings_script' ] );
         add_action( 'admin_menu', [ $this, 'register_admin_menu' ] );
     }
 
@@ -115,6 +116,35 @@ final class Nova_X_Core {
 
 
         }
+    }
+
+    /**
+     * Enqueue admin settings JavaScript
+     *
+     * @param string $hook Current admin page hook.
+     */
+    public function enqueue_settings_script( $hook ) {
+        // Only load on Nova-X settings page
+        if ( 'toplevel_page_nova-x' !== $hook ) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'nova-x-admin',
+            NOVA_X_URL . 'assets/admin.js',
+            [ 'jquery' ],
+            NOVA_X_VERSION,
+            true
+        );
+
+        wp_localize_script(
+            'nova-x-admin',
+            'NovaXData',
+            [
+                'nonce'   => wp_create_nonce( 'nova_x_nonce' ),
+                'restUrl' => esc_url_raw( rest_url( 'nova-x/v1/generate-theme' ) ),
+            ]
+        );
     }
 }
 

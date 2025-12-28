@@ -20,7 +20,7 @@ class Nova_X_Provider_Manager {
         
         if ( empty( $providers ) ) {
             // Fallback to default providers
-            $providers = [ 'openai', 'gemini', 'claude', 'mistral', 'cohere' ];
+            $providers = [ 'openai', 'anthropic', 'groq', 'mistral', 'gemini', 'claude', 'cohere' ];
         }
         
         return $providers;
@@ -34,11 +34,13 @@ class Nova_X_Provider_Manager {
      */
     public static function get_provider_name( $provider ) {
         $names = [
-            'openai' => 'OpenAI',
-            'gemini' => 'Google Gemini',
-            'claude' => 'Anthropic Claude',
-            'mistral' => 'Mistral AI',
-            'cohere' => 'Cohere',
+            'openai'    => 'OpenAI',
+            'anthropic' => 'Anthropic Claude',
+            'groq'      => 'Groq',
+            'mistral'   => 'Mistral AI',
+            'gemini'    => 'Google Gemini',
+            'claude'    => 'Anthropic Claude',
+            'cohere'    => 'Cohere',
         ];
         
         return isset( $names[ $provider ] ) ? $names[ $provider ] : ucfirst( $provider );
