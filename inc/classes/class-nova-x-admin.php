@@ -42,14 +42,14 @@ class Nova_X_Admin {
      * Add admin menu & submenus
      */
     public function add_admin_menu() {
-        add_menu_page(
-            'Nova-X Architect',
-            'Nova-X',
-            'manage_options',
-            $this->plugin_slug,
-            [ $this, 'render_settings_page' ],
-            'dashicons-hammer',
-            66
+        // Add Settings submenu under the main Nova-X menu (React dashboard)
+        add_submenu_page(
+            'nova-x',                  // Parent slug (must match the React root menu)
+            'Nova-X Settings',         // Page title
+            'Settings',                // Menu title
+            'manage_options',          // Capability
+            'nova-x-settings',         // Menu slug
+            [ $this, 'render_settings_page' ]  // Callback
         );
     }
 
@@ -57,12 +57,15 @@ class Nova_X_Admin {
      * Register settings using WordPress Settings API
      */
     public function register_settings() {
+        // Load Token Manager
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-token-manager.php';
+
         register_setting(
             'nova_x_settings_group',
             'nova_x_api_key',
             [
                 'type'              => 'string',
-                'sanitize_callback' => 'sanitize_text_field',
+                'sanitize_callback' => [ $this, 'sanitize_and_encrypt_api_key' ],
             ]
         );
 
@@ -77,10 +80,54 @@ class Nova_X_Admin {
     }
 
     /**
+     * Sanitize and encrypt API key before saving
+     *
+     * @param string $raw_key Raw API key input.
+     * @return string Empty string (key is stored encrypted separately).
+     */
+    public function sanitize_and_encrypt_api_key( $raw_key ) {
+        // Get the selected provider
+        $provider = isset( $_POST['nova_x_provider'] ) ? sanitize_text_field( $_POST['nova_x_provider'] ) : get_option( 'nova_x_provider', 'openai' );
+        
+        // Sanitize the key
+        $raw_key = sanitize_text_field( trim( $raw_key ) );
+        
+        // Only save if key is not empty and not a masked placeholder
+        if ( ! empty( $raw_key ) && strpos( $raw_key, '*' ) === false ) {
+            // Store encrypted key using Token Manager
+            Nova_X_Token_Manager::store_encrypted_key( $provider, $raw_key );
+            
+            // Also update legacy option for backward compatibility (will be deprecated)
+            update_option( 'nova_x_api_key', $raw_key );
+        }
+        
+        // Return empty string to prevent plain text storage in options
+        return '';
+    }
+
+    /**
      * Render admin settings page
      */
     public function render_settings_page() {
         ?>
+        <style>
+            .fade-success {
+                animation: fadeInSuccess 0.5s ease-in;
+            }
+            @keyframes fadeInSuccess {
+                0% { opacity: 0; transform: translateY(-5px); }
+                100% { opacity: 1; transform: translateY(0); }
+            }
+            .rotate-token-btn:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+            .rotate-token-btn .spinner {
+                float: none;
+                margin: 0 5px 0 0;
+                visibility: visible;
+            }
+        </style>
         <div class="wrap">
             <h1>Nova-X Settings</h1>
             <form method="post" action="options.php">
@@ -107,6 +154,17 @@ class Nova_X_Admin {
                         <th scope="row">API Key</th>
                         <td>
                             <input type="text" name="nova_x_api_key" value="<?php echo esc_attr( get_option( 'nova_x_api_key' ) ); ?>" class="regular-text" />
+                            <p class="description">Enter your API key for the selected provider.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Token Management</th>
+                        <td>
+                            <button type="button" class="button rotate-token-btn" data-provider="<?php echo esc_attr( get_option( 'nova_x_provider', 'openai' ) ); ?>">
+                                🔁 Rotate Token
+                            </button>
+                            <span class="rotate-token-status" style="margin-left: 10px; font-weight: bold;"></span>
+                            <p class="description">Rotate the encrypted API token for the selected provider. This will replace the existing token.</p>
                         </td>
                     </tr>
                 </table>

@@ -24,9 +24,17 @@ class Nova_X_AI_Engine {
         // Load provider from options (default: openai)
         $this->provider = get_option( 'nova_x_provider', 'openai' );
         
-        // Load API key for the selected provider using Provider Manager
-        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-provider-manager.php';
-        $this->api_key = Nova_X_Provider_Manager::get_api_key( $this->provider );
+        // Load Token Manager
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-token-manager.php';
+        
+        // Try to load decrypted key from Token Manager first (most secure)
+        $this->api_key = Nova_X_Token_Manager::get_decrypted_key( $this->provider );
+        
+        // Fallback to Provider Manager if Token Manager fails
+        if ( empty( $this->api_key ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-provider-manager.php';
+            $this->api_key = Nova_X_Provider_Manager::get_api_key( $this->provider );
+        }
         
         // Fallback to legacy option if provider-specific key is empty
         if ( empty( $this->api_key ) ) {
@@ -155,9 +163,17 @@ class Nova_X_AI_Engine {
         $this->provider = $provider;
         $this->set_api_url();
         
-        // Reload API key for the new provider
-        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-provider-manager.php';
-        $this->api_key = Nova_X_Provider_Manager::get_api_key( $provider );
+        // Load Token Manager
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-token-manager.php';
+        
+        // Try to load decrypted key from Token Manager first (most secure)
+        $this->api_key = Nova_X_Token_Manager::get_decrypted_key( $provider );
+        
+        // Fallback to Provider Manager if Token Manager fails
+        if ( empty( $this->api_key ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-provider-manager.php';
+            $this->api_key = Nova_X_Provider_Manager::get_api_key( $provider );
+        }
         
         // Fallback to legacy option if provider-specific key is empty
         if ( empty( $this->api_key ) ) {
@@ -214,9 +230,10 @@ class Nova_X_AI_Engine {
      * Call OpenAI API
      *
      * @param string $prompt User prompt.
-     * @return array Response array.
+     * @return array Response array with success status, message, and output.
      */
     private function call_openai( $prompt ) {
+        // Validate API key
         if ( empty( $this->api_key ) ) {
             return [
                 'success' => false,
@@ -224,9 +241,23 @@ class Nova_X_AI_Engine {
             ];
         }
 
+        // Sanitize prompt input
+        $prompt = sanitize_textarea_field( $prompt );
+        if ( empty( $prompt ) ) {
+            return [
+                'success' => false,
+                'message' => 'Prompt cannot be empty.',
+            ];
+        }
+
+        // Prepare request body with system message for WordPress theme development
         $body = [
-            'model'       => 'gpt-4o-mini',
+            'model'       => 'gpt-4',
             'messages'    => [
+                [
+                    'role'    => 'system',
+                    'content' => 'You are an expert WordPress theme developer. Respond only with clean HTML, CSS, and PHP for WordPress themes.',
+                ],
                 [
                     'role'    => 'user',
                     'content' => $prompt,
@@ -235,6 +266,7 @@ class Nova_X_AI_Engine {
             'temperature' => 0.7,
         ];
 
+        // Make API request
         $response = wp_remote_post(
             $this->api_url,
             [
@@ -243,32 +275,64 @@ class Nova_X_AI_Engine {
                     'Content-Type'  => 'application/json',
                 ],
                 'body'    => wp_json_encode( $body ),
-                'timeout' => 30,
+                'timeout' => 60, // Increased timeout for theme generation
             ]
         );
 
+        // Handle WordPress HTTP errors
         if ( is_wp_error( $response ) ) {
+            $error_message = $response->get_error_message();
             return [
                 'success' => false,
-                'message' => 'OpenAI request failed: ' . $response->get_error_message(),
+                'message' => 'OpenAI Error: ' . esc_html( $error_message ),
             ];
         }
 
+        // Get response code and body
         $code = wp_remote_retrieve_response_code( $response );
-        $data = json_decode( wp_remote_retrieve_body( $response ), true );
+        $body_content = wp_remote_retrieve_body( $response );
+        $data = json_decode( $body_content, true );
 
-        if ( $code !== 200 || empty( $data['choices'][0]['message']['content'] ) ) {
+        // Handle non-200 status codes
+        if ( $code !== 200 ) {
+            $error_message = 'HTTP Error ' . $code;
+            
+            // Extract error message from OpenAI response if available
+            if ( isset( $data['error']['message'] ) ) {
+                $error_message = $data['error']['message'];
+            } elseif ( isset( $data['error']['code'] ) ) {
+                $error_message = $data['error']['code'] . ': ' . ( $data['error']['message'] ?? 'Unknown error' );
+            }
+            
             return [
                 'success' => false,
-                'message' => 'OpenAI API error.',
-                'output'  => $data,
+                'message' => 'OpenAI Error: ' . esc_html( $error_message ),
             ];
         }
 
+        // Validate response structure
+        if ( empty( $data['choices'] ) || empty( $data['choices'][0]['message']['content'] ) ) {
+            return [
+                'success' => false,
+                'message' => 'OpenAI Error: Invalid response format.',
+            ];
+        }
+
+        // Extract and sanitize output
+        $output = trim( $data['choices'][0]['message']['content'] );
+        
+        if ( empty( $output ) ) {
+            return [
+                'success' => false,
+                'message' => 'OpenAI Error: Empty response from API.',
+            ];
+        }
+
+        // Return success response
         return [
-            'success' => true,
-            'message' => 'OpenAI used',
-            'output'  => trim( $data['choices'][0]['message']['content'] ),
+            'success'  => true,
+            'output'   => $output,
+            'provider' => 'openai',
         ];
     }
 
@@ -279,18 +343,130 @@ class Nova_X_AI_Engine {
      * @return array Response array.
      */
     private function call_anthropic( $prompt ) {
-        if ( empty( $this->api_key ) ) {
+        // Check for API key (try multiple sources in order of security)
+        $api_key = $this->api_key;
+        
+        // Try Token Manager first (most secure)
+        if ( empty( $api_key ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-token-manager.php';
+            $api_key = Nova_X_Token_Manager::get_decrypted_key( 'anthropic' );
+        }
+        
+        // Fallback to Provider Manager
+        if ( empty( $api_key ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-provider-manager.php';
+            $api_key = Nova_X_Provider_Manager::get_api_key( 'anthropic' );
+        }
+        
+        // Fallback to legacy option
+        if ( empty( $api_key ) ) {
+            $api_key = get_option( 'nova_x_api_key_anthropic', '' );
+        }
+        
+        // Stub mode if no API key available
+        if ( empty( $api_key ) ) {
             return [
-                'success' => false,
-                'message' => 'Anthropic API key is missing. Please save it in Nova-X settings.',
+                'success'  => true,
+                'message'  => 'Stubbed response for Anthropic',
+                'output'   => '<?php // Simulated theme output ?>',
+                'provider' => 'anthropic',
             ];
         }
 
-        // Anthropic API stub - to be implemented later
+        // Sanitize prompt input
+        $prompt = sanitize_textarea_field( $prompt );
+        if ( empty( $prompt ) ) {
+            return [
+                'success' => false,
+                'message' => 'Prompt cannot be empty.',
+            ];
+        }
+
+        // Set API URL
+        $api_url = 'https://api.anthropic.com/v1/messages';
+
+        // Prepare request body
+        $body = [
+            'model'       => 'claude-2.1',
+            'max_tokens'  => 2048,
+            'temperature' => 0.7,
+            'system'      => 'You are an expert WordPress theme developer. Output only PHP, HTML, CSS.',
+            'messages'    => [
+                [
+                    'role'    => 'user',
+                    'content' => $prompt,
+                ],
+            ],
+        ];
+
+        // Make API request
+        $response = wp_remote_post(
+            $api_url,
+            [
+                'headers' => [
+                    'x-api-key'         => $api_key,
+                    'anthropic-version' => '2023-06-01',
+                    'Content-Type'      => 'application/json',
+                ],
+                'body'    => wp_json_encode( $body ),
+                'timeout' => 60,
+            ]
+        );
+
+        // Handle WordPress HTTP errors
+        if ( is_wp_error( $response ) ) {
+            $error_message = $response->get_error_message();
+            return [
+                'success' => false,
+                'message' => 'Anthropic Error: ' . esc_html( $error_message ),
+            ];
+        }
+
+        // Get response code and body
+        $code = wp_remote_retrieve_response_code( $response );
+        $body_content = wp_remote_retrieve_body( $response );
+        $data = json_decode( $body_content, true );
+
+        // Handle non-200 status codes
+        if ( $code !== 200 ) {
+            $error_message = 'HTTP Error ' . $code;
+            
+            // Extract error message from Anthropic response if available
+            if ( isset( $data['error']['message'] ) ) {
+                $error_message = $data['error']['message'];
+            } elseif ( isset( $data['error']['type'] ) ) {
+                $error_message = $data['error']['type'] . ': ' . ( $data['error']['message'] ?? 'Unknown error' );
+            }
+            
+            return [
+                'success' => false,
+                'message' => 'Anthropic Error: ' . esc_html( $error_message ),
+            ];
+        }
+
+        // Validate response structure
+        if ( empty( $data['content'] ) || empty( $data['content'][0]['text'] ) ) {
+            return [
+                'success' => false,
+                'message' => 'Anthropic Error: Invalid response format.',
+            ];
+        }
+
+        // Extract and sanitize output
+        $output = trim( $data['content'][0]['text'] );
+        
+        if ( empty( $output ) ) {
+            return [
+                'success' => false,
+                'message' => 'Anthropic Error: Empty response from API.',
+            ];
+        }
+
+        // Return success response
         return [
-            'success' => true,
-            'message' => 'Anthropic used',
-            'output'  => '...',
+            'success'  => true,
+            'output'   => $output,
+            'provider' => 'anthropic',
         ];
     }
 
@@ -301,18 +477,132 @@ class Nova_X_AI_Engine {
      * @return array Response array.
      */
     private function call_groq( $prompt ) {
-        if ( empty( $this->api_key ) ) {
+        // Check for API key (try multiple sources in order of security)
+        $api_key = $this->api_key;
+        
+        // Try Token Manager first (most secure)
+        if ( empty( $api_key ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-token-manager.php';
+            $api_key = Nova_X_Token_Manager::get_decrypted_key( 'groq' );
+        }
+        
+        // Fallback to Provider Manager
+        if ( empty( $api_key ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-provider-manager.php';
+            $api_key = Nova_X_Provider_Manager::get_api_key( 'groq' );
+        }
+        
+        // Fallback to legacy option
+        if ( empty( $api_key ) ) {
+            $api_key = get_option( 'nova_x_api_key_groq', '' );
+        }
+        
+        // Stub mode if no API key available
+        if ( empty( $api_key ) ) {
             return [
-                'success' => false,
-                'message' => 'Groq API key is missing. Please save it in Nova-X settings.',
+                'success'  => true,
+                'message'  => 'Stubbed response for Groq',
+                'output'   => '<?php // Simulated theme output ?>',
+                'provider' => 'groq',
             ];
         }
 
-        // Groq API stub - to be implemented later
-        // Simulated failure for testing fallback logic
+        // Sanitize prompt input
+        $prompt = sanitize_textarea_field( $prompt );
+        if ( empty( $prompt ) ) {
+            return [
+                'success' => false,
+                'message' => 'Prompt cannot be empty.',
+            ];
+        }
+
+        // Set API URL
+        $api_url = 'https://api.groq.com/openai/v1/chat/completions';
+
+        // Prepare request body
+        $body = [
+            'model'       => 'mixtral-8x7b-32768',
+            'messages'    => [
+                [
+                    'role'    => 'system',
+                    'content' => 'You are an expert WordPress theme developer. Output only PHP, HTML, CSS.',
+                ],
+                [
+                    'role'    => 'user',
+                    'content' => $prompt,
+                ],
+            ],
+            'temperature' => 0.7,
+            'max_tokens'  => 2048,
+        ];
+
+        // Make API request
+        $response = wp_remote_post(
+            $api_url,
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $api_key,
+                    'Content-Type'  => 'application/json',
+                ],
+                'body'    => wp_json_encode( $body ),
+                'timeout' => 60,
+            ]
+        );
+
+        // Handle WordPress HTTP errors
+        if ( is_wp_error( $response ) ) {
+            $error_message = $response->get_error_message();
+            return [
+                'success' => false,
+                'message' => 'Groq Error: ' . esc_html( $error_message ),
+            ];
+        }
+
+        // Get response code and body
+        $code = wp_remote_retrieve_response_code( $response );
+        $body_content = wp_remote_retrieve_body( $response );
+        $data = json_decode( $body_content, true );
+
+        // Handle non-200 status codes
+        if ( $code !== 200 ) {
+            $error_message = 'HTTP Error ' . $code;
+            
+            // Extract error message from Groq response if available
+            if ( isset( $data['error']['message'] ) ) {
+                $error_message = $data['error']['message'];
+            } elseif ( isset( $data['error']['code'] ) ) {
+                $error_message = $data['error']['code'] . ': ' . ( $data['error']['message'] ?? 'Unknown error' );
+            }
+            
+            return [
+                'success' => false,
+                'message' => 'Groq Error: ' . esc_html( $error_message ),
+            ];
+        }
+
+        // Validate response structure
+        if ( empty( $data['choices'] ) || empty( $data['choices'][0]['message']['content'] ) ) {
+            return [
+                'success' => false,
+                'message' => 'Groq Error: Invalid response format.',
+            ];
+        }
+
+        // Extract and sanitize output
+        $output = trim( $data['choices'][0]['message']['content'] );
+        
+        if ( empty( $output ) ) {
+            return [
+                'success' => false,
+                'message' => 'Groq Error: Empty response from API.',
+            ];
+        }
+
+        // Return success response
         return [
-            'success' => false,
-            'message' => 'Groq test failure',
+            'success'  => true,
+            'output'   => $output,
+            'provider' => 'groq',
         ];
     }
 
@@ -323,18 +613,132 @@ class Nova_X_AI_Engine {
      * @return array Response array.
      */
     private function call_mistral( $prompt ) {
-        if ( empty( $this->api_key ) ) {
+        // Check for API key (try multiple sources in order of security)
+        $api_key = $this->api_key;
+        
+        // Try Token Manager first (most secure)
+        if ( empty( $api_key ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-token-manager.php';
+            $api_key = Nova_X_Token_Manager::get_decrypted_key( 'mistral' );
+        }
+        
+        // Fallback to Provider Manager
+        if ( empty( $api_key ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-provider-manager.php';
+            $api_key = Nova_X_Provider_Manager::get_api_key( 'mistral' );
+        }
+        
+        // Fallback to legacy option
+        if ( empty( $api_key ) ) {
+            $api_key = get_option( 'nova_x_api_key_mistral', '' );
+        }
+        
+        // Stub mode if no API key available
+        if ( empty( $api_key ) ) {
             return [
-                'success' => false,
-                'message' => 'Mistral API key is missing. Please save it in Nova-X settings.',
+                'success'  => true,
+                'message'  => 'Stubbed response for Mistral',
+                'output'   => '<?php // Simulated theme output ?>',
+                'provider' => 'mistral',
             ];
         }
 
-        // Mistral API stub - to be implemented later
+        // Sanitize prompt input
+        $prompt = sanitize_textarea_field( $prompt );
+        if ( empty( $prompt ) ) {
+            return [
+                'success' => false,
+                'message' => 'Prompt cannot be empty.',
+            ];
+        }
+
+        // Set API URL
+        $api_url = 'https://api.mistral.ai/v1/chat/completions';
+
+        // Prepare request body
+        $body = [
+            'model'       => 'mistral-large-latest',
+            'messages'    => [
+                [
+                    'role'    => 'system',
+                    'content' => 'You are an expert WordPress theme developer. Respond only with clean HTML, CSS, and PHP for WordPress themes.',
+                ],
+                [
+                    'role'    => 'user',
+                    'content' => $prompt,
+                ],
+            ],
+            'temperature' => 0.7,
+            'max_tokens'  => 2048,
+        ];
+
+        // Make API request
+        $response = wp_remote_post(
+            $api_url,
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $api_key,
+                    'Content-Type'  => 'application/json',
+                ],
+                'body'    => wp_json_encode( $body ),
+                'timeout' => 60,
+            ]
+        );
+
+        // Handle WordPress HTTP errors
+        if ( is_wp_error( $response ) ) {
+            $error_message = $response->get_error_message();
+            return [
+                'success' => false,
+                'message' => 'Mistral Error: ' . esc_html( $error_message ),
+            ];
+        }
+
+        // Get response code and body
+        $code = wp_remote_retrieve_response_code( $response );
+        $body_content = wp_remote_retrieve_body( $response );
+        $data = json_decode( $body_content, true );
+
+        // Handle non-200 status codes
+        if ( $code !== 200 ) {
+            $error_message = 'HTTP Error ' . $code;
+            
+            // Extract error message from Mistral response if available
+            if ( isset( $data['error']['message'] ) ) {
+                $error_message = $data['error']['message'];
+            } elseif ( isset( $data['error']['code'] ) ) {
+                $error_message = $data['error']['code'] . ': ' . ( $data['error']['message'] ?? 'Unknown error' );
+            }
+            
+            return [
+                'success' => false,
+                'message' => 'Mistral Error: ' . esc_html( $error_message ),
+            ];
+        }
+
+        // Validate response structure
+        if ( empty( $data['choices'] ) || empty( $data['choices'][0]['message']['content'] ) ) {
+            return [
+                'success' => false,
+                'message' => 'Mistral Error: Invalid response format.',
+            ];
+        }
+
+        // Extract and sanitize output
+        $output = trim( $data['choices'][0]['message']['content'] );
+        
+        if ( empty( $output ) ) {
+            return [
+                'success' => false,
+                'message' => 'Mistral Error: Empty response from API.',
+            ];
+        }
+
+        // Return success response
         return [
-            'success' => true,
-            'message' => 'Mistral used',
-            'output'  => '...',
+            'success'  => true,
+            'output'   => $output,
+            'provider' => 'mistral',
         ];
     }
 

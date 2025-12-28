@@ -53,6 +53,26 @@ class Nova_X_REST {
             ]
         );
 
+        register_rest_route(
+            'nova-x/v1',
+            '/rotate-token',
+            [
+                'methods'             => 'POST',
+                'callback'            => [ $this, 'handle_rotate_token' ],
+                'permission_callback' => [ $this, 'check_permissions' ],
+            ]
+        );
+
+        register_rest_route(
+            'nova-x/v1',
+            '/export-theme',
+            [
+                'methods'             => 'POST',
+                'callback'            => [ $this, 'handle_export_theme' ],
+                'permission_callback' => [ $this, 'check_permissions' ],
+            ]
+        );
+
         // IMPORTANT:
         // No automatic OpenAI test route
         // No admin notices
@@ -130,11 +150,32 @@ class Nova_X_REST {
             );
         }
 
-        // Load and instantiate the Architect class.
-        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-architect.php';
+        // Load AI Engine to generate theme code
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-ai-engine.php';
+        $ai_engine = new Nova_X_AI_Engine();
+        $ai_result = $ai_engine->generate_theme_code( $prompt );
 
+        // If AI generation failed, return error
+        if ( ! $ai_result['success'] ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => $ai_result['message'] ?? 'Theme generation failed.',
+                ],
+                500
+            );
+        }
+
+        // Load and instantiate the Architect class to create theme files
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-architect.php';
         $architect = new Nova_X_Architect();
         $result    = $architect->build_theme( $site_title, $prompt );
+
+        // Add AI-generated code to response for export functionality
+        if ( $result['success'] && isset( $ai_result['output'] ) ) {
+            $result['output'] = $ai_result['output'];
+            $result['provider'] = $ai_result['provider'] ?? 'unknown';
+        }
 
         return rest_ensure_response( $result );
     }
@@ -160,6 +201,154 @@ class Nova_X_REST {
                 'themes' => $themes,
             ]
         );
+    }
+
+    /**
+     * Handle token rotation request
+     *
+     * @param WP_REST_Request $request REST request object.
+     * @return WP_REST_Response|WP_Error Response object.
+     */
+    public function handle_rotate_token( WP_REST_Request $request ) {
+        $params = $request->get_json_params();
+
+        // Verify nonce for CSRF protection
+        if ( ! isset( $params['nonce'] ) || ! wp_verify_nonce( $params['nonce'], 'nova_x_nonce' ) ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'Invalid nonce. Please refresh the page and try again.',
+                ],
+                403
+            );
+        }
+
+        // Sanitize and validate provider
+        $provider = isset( $params['provider'] ) ? sanitize_text_field( $params['provider'] ) : '';
+        
+        if ( empty( $provider ) ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'Provider parameter is required.',
+                ],
+                400
+            );
+        }
+
+        // Validate provider is in allowed list
+        $allowed_providers = [ 'openai', 'anthropic', 'groq', 'mistral', 'gemini', 'claude', 'cohere' ];
+        if ( ! in_array( $provider, $allowed_providers, true ) ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'Invalid provider specified.',
+                ],
+                400
+            );
+        }
+
+        // Get force parameter (default: false)
+        $force = isset( $params['force'] ) ? (bool) $params['force'] : false;
+
+        // Load Token Manager
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-token-manager.php';
+
+        // Get new API key from request (required for rotation)
+        $new_key = isset( $params['new_key'] ) ? trim( sanitize_text_field( $params['new_key'] ) ) : '';
+
+        if ( empty( $new_key ) ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'API key is required for rotation. Please enter a key in the API Key field first.',
+                ],
+                400
+            );
+        }
+
+        // Attempt to rotate the key
+        $result = Nova_X_Token_Manager::rotate_key( $provider, $new_key, $force );
+
+        if ( $result ) {
+            return new WP_REST_Response(
+                [
+                    'success' => true,
+                    'message' => 'Token rotated successfully for ' . esc_html( $provider ) . '.',
+                ],
+                200
+            );
+        } else {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'Failed to rotate token. Please check that the new key is valid.',
+                ],
+                500
+            );
+        }
+    }
+
+    /**
+     * Handle theme export request
+     *
+     * @param WP_REST_Request $request REST request object.
+     * @return WP_REST_Response|WP_Error Response object.
+     */
+    public function handle_export_theme( WP_REST_Request $request ) {
+        $params = $request->get_json_params();
+
+        // Verify nonce for CSRF protection
+        if ( ! isset( $params['nonce'] ) || ! wp_verify_nonce( $params['nonce'], 'nova_x_nonce' ) ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'Invalid nonce. Please refresh the page and try again.',
+                ],
+                403
+            );
+        }
+
+        // Sanitize and validate input parameters
+        $site_title = isset( $params['site_title'] ) ? sanitize_text_field( $params['site_title'] ) : '';
+        $code       = isset( $params['code'] ) ? wp_kses_post( $params['code'] ) : '';
+
+        // Validate required fields
+        if ( empty( $site_title ) || empty( $code ) ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'Site title and code are required for export.',
+                ],
+                400
+            );
+        }
+
+        // Load Theme Exporter
+        require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-theme-exporter.php';
+
+        // Export theme
+        $result = Nova_X_Theme_Exporter::export_theme( $site_title, $code );
+
+        if ( $result['success'] ) {
+            return new WP_REST_Response(
+                [
+                    'success'      => true,
+                    'download_url' => esc_url_raw( $result['download_url'] ),
+                    'filename'     => esc_html( $result['filename'] ),
+                    'message'      => $result['message'],
+                ],
+                200
+            );
+        } else {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => $result['message'],
+                ],
+                500
+            );
+        }
     }
 
     /**

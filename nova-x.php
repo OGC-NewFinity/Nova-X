@@ -20,6 +20,12 @@ define( 'NOVA_X_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NOVA_X_URL', plugin_dir_url( __FILE__ ) );
 define( 'NOVA_X_SUPPORTED_PROVIDERS', [ 'openai', 'anthropic', 'groq', 'mistral', 'gemini', 'claude', 'cohere' ] );
 
+// Master encryption key for API key storage (never expose to frontend)
+// Generate a secure random key: openssl rand -hex 32
+if ( ! defined( 'NOVA_X_ENCRYPTION_KEY' ) ) {
+    define( 'NOVA_X_ENCRYPTION_KEY', 'CHANGE_THIS_TO_A_SECURE_RANDOM_KEY_' . AUTH_SALT . SECURE_AUTH_SALT );
+}
+
 /**
  * Main Class Initialization
  */
@@ -38,17 +44,28 @@ final class Nova_X_Core {
         // Load Core Components
         $this->includes();
         $this->hooks();
+        
+        // Initialize Admin class if in admin area
+        if ( is_admin() ) {
+            new Nova_X_Admin( NOVA_X_VERSION );
+        }
     }
 
     /**
      * Load the required files
      */
     private function includes() {
+        // Load helper functions first
+        require_once NOVA_X_PATH . 'inc/helpers/helper-functions.php';
+        
         // Load Classes (using the lowercase folder 'classes')
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-token-manager.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-provider-manager.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-ai-engine.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-rest.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-generator.php';
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-theme-exporter.php';
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-admin.php';
         // Initialize REST API
         new Nova_X_REST();
     }
@@ -56,18 +73,20 @@ final class Nova_X_Core {
     private function hooks() {
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_settings_script' ] );
+        // Register main React dashboard menu
         add_action( 'admin_menu', [ $this, 'register_admin_menu' ] );
     }
 
     public function register_admin_menu() {
+        // Main menu for React dashboard
         add_menu_page(
             'Nova-X',
             'Nova-X',
             'manage_options',
             'nova-x',
-            [ $this, 'render_admin_page' ],
-            'dashicons-yes-alt', // GREEN CHECK ICON (TEST)
-            26
+            [ $this, 'render_admin_page' ], // React will attach here
+            'dashicons-hammer',
+            66
         );
     }    
 
@@ -124,8 +143,8 @@ final class Nova_X_Core {
      * @param string $hook Current admin page hook.
      */
     public function enqueue_settings_script( $hook ) {
-        // Only load on Nova-X settings page
-        if ( 'toplevel_page_nova-x' !== $hook ) {
+        // Only load on Nova-X settings submenu page
+        if ( 'nova-x_page_nova-x-settings' !== $hook ) {
             return;
         }
 
@@ -141,8 +160,10 @@ final class Nova_X_Core {
             'nova-x-admin',
             'NovaXData',
             [
-                'nonce'   => wp_create_nonce( 'nova_x_nonce' ),
-                'restUrl' => esc_url_raw( rest_url( 'nova-x/v1/generate-theme' ) ),
+                'nonce'          => wp_create_nonce( 'nova_x_nonce' ),
+                'restUrl'        => esc_url_raw( rest_url( 'nova-x/v1/generate-theme' ) ),
+                'rotateTokenUrl' => esc_url_raw( rest_url( 'nova-x/v1/rotate-token' ) ),
+                'exportThemeUrl' => esc_url_raw( rest_url( 'nova-x/v1/export-theme' ) ),
             ]
         );
     }
