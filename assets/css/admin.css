@@ -4,9 +4,15 @@
  * @package Nova-X
  */
 
+.nova-x-sidebar-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 0;
+}
+
 .nova-x-logo {
-  display: block;
-  max-width: 220px;
-  margin: 30px auto;
+    height: 36px;
+    width: auto;
 }
 
