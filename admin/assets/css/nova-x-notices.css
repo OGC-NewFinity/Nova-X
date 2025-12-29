@@ -1,0 +1,217 @@
+/**
+ * Nova-X Admin Notices
+ * 
+ * @package Nova-X
+ * 
+ * Design intelligence, crystallized.
+ */
+
+/* ========================================
+   Notice Container
+   ======================================== */
+
+.nova-x-notice {
+    position: relative;
+    margin: 15px 0;
+    padding: 12px 40px 12px 50px;
+    border-left: 4px solid;
+    border-radius: 4px;
+    background: var(--surface-0);
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    animation: nova-x-notice-slide-in 0.3s ease-out;
+    transition: all 0.2s ease;
+}
+
+.nova-x-notice p {
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-0);
+    flex: 1;
+}
+
+.nova-x-notice strong {
+    font-weight: 600;
+    color: var(--text-0);
+}
+
+/* ========================================
+   Notice Icons
+   ======================================== */
+
+.nova-x-notice-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+/* ========================================
+   Notice Types
+   ======================================== */
+
+.nova-x-notice-success {
+    border-left-color: var(--secondary);
+    background: var(--surface-0);
+}
+
+.nova-x-notice-success .nova-x-notice-icon {
+    color: var(--secondary);
+}
+
+.nova-x-notice-error {
+    border-left-color: var(--accent-2);
+    background: var(--surface-0);
+}
+
+.nova-x-notice-error .nova-x-notice-icon {
+    color: var(--accent-2);
+}
+
+.nova-x-notice-info {
+    border-left-color: var(--primary);
+    background: var(--surface-0);
+}
+
+.nova-x-notice-info .nova-x-notice-icon {
+    color: var(--primary);
+}
+
+.nova-x-notice-warning {
+    border-left-color: #FFB020;
+    background: var(--surface-0);
+}
+
+.nova-x-notice-warning .nova-x-notice-icon {
+    color: #FFB020;
+}
+
+/* ========================================
+   Dismissible Notices
+   ======================================== */
+
+.nova-x-notice.is-dismissible {
+    padding-right: 50px;
+}
+
+.nova-x-notice-dismiss {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-2);
+    cursor: pointer;
+    padding: 4px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.nova-x-notice-dismiss:hover {
+    background: var(--surface-1);
+    color: var(--text-0);
+}
+
+.nova-x-notice-dismiss::before {
+    content: '\f335';
+    font-family: dashicons;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.nova-x-notice-dismiss .screen-reader-text {
+    position: absolute;
+    clip: rect(1px, 1px, 1px, 1px);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+/* ========================================
+   Notice Positioning
+   ======================================== */
+
+/* Ensure notices appear below header */
+.nova-x-page-content .nova-x-notice:first-child {
+    margin-top: 0;
+}
+
+/* Stack multiple notices */
+.nova-x-notice + .nova-x-notice {
+    margin-top: 10px;
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+
+@keyframes nova-x-notice-slide-in {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.nova-x-notice.nova-x-notice-dismissed {
+    animation: nova-x-notice-slide-out 0.3s ease-in forwards;
+}
+
+@keyframes nova-x-notice-slide-out {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+        max-height: 200px;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-10px);
+        max-height: 0;
+        margin: 0;
+        padding: 0;
+    }
+}
+
+/* ========================================
+   Responsive
+   ======================================== */
+
+@media (max-width: 782px) {
+    .nova-x-notice {
+        padding: 10px 35px 10px 45px;
+        margin: 12px 0;
+    }
+
+    .nova-x-notice.is-dismissible {
+        padding-right: 45px;
+    }
+
+    .nova-x-notice-icon {
+        left: 12px;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+    }
+
+    .nova-x-notice p {
+        font-size: 13px;
+    }
+}
+

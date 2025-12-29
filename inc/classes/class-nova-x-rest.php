@@ -198,6 +198,7 @@ class Nova_X_REST {
 
         // Verify nonce for CSRF protection.
         if ( ! isset( $params['nonce'] ) || ! wp_verify_nonce( $params['nonce'], 'nova_x_nonce' ) ) {
+            error_log( 'Nova-X: REST API security - Invalid nonce for generate-theme endpoint' );
             return new WP_REST_Response(
                 [
                     'error' => 'Invalid nonce',
@@ -212,6 +213,7 @@ class Nova_X_REST {
 
         // Validate required fields.
         if ( empty( $site_title ) || empty( $prompt ) ) {
+            error_log( 'Nova-X: Theme generation failed - Missing required parameters (title or prompt)' );
             return new WP_REST_Response(
                 [
                     'error' => 'Missing title or prompt',
@@ -227,10 +229,13 @@ class Nova_X_REST {
 
         // If AI generation failed, return error
         if ( ! $ai_result['success'] ) {
+            $error_message = $ai_result['message'] ?? 'Theme generation failed.';
+            $provider = $ai_result['provider'] ?? 'unknown';
+            error_log( 'Nova-X: Theme generation failed - AI engine error for theme "' . $site_title . '" using provider ' . $provider );
             return new WP_REST_Response(
                 [
                     'success' => false,
-                    'message' => $ai_result['message'] ?? 'Theme generation failed.',
+                    'message' => $error_message,
                 ],
                 500
             );
@@ -240,6 +245,12 @@ class Nova_X_REST {
         require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-architect.php';
         $architect = new Nova_X_Architect();
         $result    = $architect->build_theme( $site_title, $prompt );
+
+        // Log failure if theme building failed
+        if ( ! $result['success'] ) {
+            $slug = sanitize_title( $site_title );
+            error_log( 'Nova-X: Theme building failed - Architect error for theme "' . $site_title . '" (slug: ' . $slug . ')' );
+        }
 
         // Add AI-generated code to response for export functionality
         if ( $result['success'] && isset( $ai_result['output'] ) ) {
@@ -349,6 +360,7 @@ class Nova_X_REST {
                 200
             );
         } else {
+            error_log( 'Nova-X: Token rotation failed - Provider: ' . $provider );
             return new WP_REST_Response(
                 [
                     'success' => false,
@@ -411,6 +423,7 @@ class Nova_X_REST {
                 200
             );
         } else {
+            error_log( 'Nova-X: Theme export failed - ' . ( $result['message'] ?? 'Unknown error' ) );
             return new WP_REST_Response(
                 [
                     'success' => false,
@@ -531,6 +544,7 @@ class Nova_X_REST {
                 200
             );
         } else {
+            error_log( 'Nova-X: Theme installation failed - ' . ( $result['message'] ?? 'Unknown error' ) );
             return new WP_REST_Response(
                 [
                     'success' => false,
@@ -616,6 +630,7 @@ class Nova_X_REST {
                 200
             );
         } else {
+            error_log( 'Nova-X: Usage tracker reset failed' );
             return new WP_REST_Response(
                 [
                     'success' => false,
@@ -682,6 +697,7 @@ class Nova_X_REST {
                 'message' => $result['message'],
             ], 200 );
         } else {
+            error_log( 'Nova-X: Delete exported theme failed - Slug: ' . $slug . ' - ' . ( $result['message'] ?? 'Unknown error' ) );
             return new WP_REST_Response( [
                 'success' => false,
                 'message' => $result['message'],
@@ -729,6 +745,7 @@ class Nova_X_REST {
                 'filename'     => esc_html( $result['filename'] ),
             ], 200 );
         } else {
+            error_log( 'Nova-X: Re-export theme failed - Slug: ' . $slug . ' - ' . ( $result['message'] ?? 'Unknown error' ) );
             return new WP_REST_Response( [
                 'success' => false,
                 'message' => $result['message'],

@@ -53,9 +53,10 @@ class Nova_X_Theme_Installer {
         if ( ! self::copy_directory( $theme_dir, $preview_dir ) ) {
             // Clean up
             self::delete_directory( $theme_dir );
+            error_log( 'Nova-X: Theme preview failed - Could not copy theme to preview directory for slug ' . $theme_slug );
             return [
                 'success' => false,
-                'message' => 'Failed to copy theme to preview directory.',
+                'message' => 'Failed to copy theme to preview directory. Please check file permissions.',
             ];
         }
 
@@ -118,9 +119,10 @@ class Nova_X_Theme_Installer {
         if ( ! self::copy_directory( $theme_dir, $install_dir ) ) {
             // Clean up
             self::delete_directory( $theme_dir );
+            error_log( 'Nova-X: Theme installation failed - Could not copy theme to themes directory for slug ' . $theme_slug );
             return [
                 'success' => false,
-                'message' => 'Failed to install theme.',
+                'message' => 'Failed to install theme. Please check file permissions.',
             ];
         }
 
@@ -132,9 +134,10 @@ class Nova_X_Theme_Installer {
         if ( ! $theme->exists() ) {
             // Clean up installed theme
             self::delete_directory( $install_dir );
+            error_log( 'Nova-X: Theme installation failed - Installed theme is not valid for slug ' . $theme_slug );
             return [
                 'success' => false,
-                'message' => 'Installed theme is not valid.',
+                'message' => 'Installed theme is not valid. The theme may be missing required files.',
             ];
         }
 
@@ -159,9 +162,10 @@ class Nova_X_Theme_Installer {
         // Get uploads directory for temporary storage
         $upload_dir = wp_upload_dir();
         if ( $upload_dir['error'] ) {
+            error_log( 'Nova-X: Theme installation failed - Cannot access uploads directory' );
             return [
                 'success' => false,
-                'message' => 'Failed to access uploads directory.',
+                'message' => 'Failed to access uploads directory. Please check file permissions.',
             ];
         }
 
@@ -186,9 +190,11 @@ class Nova_X_Theme_Installer {
             $zip_content = wp_remote_get( $zip_url );
             
             if ( is_wp_error( $zip_content ) ) {
+                $error_msg = $zip_content->get_error_message();
+                error_log( 'Nova-X: Theme installation failed - Download error: ' . $error_msg );
                 return [
                     'success' => false,
-                    'message' => 'Failed to download ZIP file: ' . $zip_content->get_error_message(),
+                    'message' => 'Failed to download theme file. Please check the URL and try again.',
                 ];
             }
 
@@ -223,9 +229,10 @@ class Nova_X_Theme_Installer {
             if ( $zip_path !== $zip_url && file_exists( $zip_path ) ) {
                 unlink( $zip_path );
             }
+            error_log( 'Nova-X: Theme installation failed - ZipArchive class not available' );
             return [
                 'success' => false,
-                'message' => 'ZipArchive class is not available on this server.',
+                'message' => 'ZIP archive functionality is not available on this server. Please contact your hosting provider.',
             ];
         }
 
@@ -240,9 +247,10 @@ class Nova_X_Theme_Installer {
             if ( $zip_path !== $zip_url && file_exists( $zip_path ) ) {
                 unlink( $zip_path );
             }
+            error_log( 'Nova-X: Theme installation failed - Could not open ZIP file: ' . basename( $zip_path ) );
             return [
                 'success' => false,
-                'message' => 'Failed to open ZIP file.',
+                'message' => 'Failed to open theme ZIP file. The file may be corrupted.',
             ];
         }
 
@@ -264,9 +272,10 @@ class Nova_X_Theme_Installer {
         
         if ( ! $theme_dir ) {
             self::delete_directory( $extract_dir );
+            error_log( 'Nova-X: Theme installation failed - Theme directory not found in ZIP file' );
             return [
                 'success' => false,
-                'message' => 'Could not find theme directory in ZIP file.',
+                'message' => 'Could not find theme directory in ZIP file. The ZIP may be incorrectly structured.',
             ];
         }
 

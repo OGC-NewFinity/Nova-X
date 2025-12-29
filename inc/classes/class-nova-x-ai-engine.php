@@ -284,9 +284,10 @@ class Nova_X_AI_Engine {
         // Handle WordPress HTTP errors
         if ( is_wp_error( $response ) ) {
             $error_message = $response->get_error_message();
+            error_log( 'Nova-X: OpenAI API request failed - ' . $error_message );
             return [
                 'success' => false,
-                'message' => 'OpenAI Error: ' . esc_html( $error_message ),
+                'message' => 'Unable to connect to AI service. Please check your API key and try again.',
             ];
         }
 
@@ -298,25 +299,43 @@ class Nova_X_AI_Engine {
         // Handle non-200 status codes
         if ( $code !== 200 ) {
             $error_message = 'HTTP Error ' . $code;
+            $error_code = '';
             
             // Extract error message from OpenAI response if available
             if ( isset( $data['error']['message'] ) ) {
                 $error_message = $data['error']['message'];
-            } elseif ( isset( $data['error']['code'] ) ) {
-                $error_message = $data['error']['code'] . ': ' . ( $data['error']['message'] ?? 'Unknown error' );
+            }
+            if ( isset( $data['error']['code'] ) ) {
+                $error_code = $data['error']['code'];
+                $error_message = ( $error_message !== 'HTTP Error ' . $code ) ? $error_message : $error_code . ': ' . ( $data['error']['message'] ?? 'Unknown error' );
+            }
+            
+            error_log( 'Nova-X: OpenAI API error - HTTP ' . $code . ( $error_code ? ' Code: ' . $error_code : '' ) );
+            
+            // User-friendly message
+            $user_message = 'AI service returned an error. ';
+            if ( $code === 401 ) {
+                $user_message .= 'Please check your API key.';
+            } elseif ( $code === 429 ) {
+                $user_message .= 'Rate limit exceeded. Please try again later.';
+            } elseif ( $code >= 500 ) {
+                $user_message .= 'Service temporarily unavailable. Please try again later.';
+            } else {
+                $user_message .= 'Please try again or contact support.';
             }
             
             return [
                 'success' => false,
-                'message' => 'OpenAI Error: ' . esc_html( $error_message ),
+                'message' => $user_message,
             ];
         }
 
         // Validate response structure
         if ( empty( $data['choices'] ) || empty( $data['choices'][0]['message']['content'] ) ) {
+            error_log( 'Nova-X: OpenAI API - Invalid response format received' );
             return [
                 'success' => false,
-                'message' => 'OpenAI Error: Invalid response format.',
+                'message' => 'AI service returned an unexpected response. Please try again.',
             ];
         }
 
@@ -324,9 +343,10 @@ class Nova_X_AI_Engine {
         $output = trim( $data['choices'][0]['message']['content'] );
         
         if ( empty( $output ) ) {
+            error_log( 'Nova-X: OpenAI API - Empty response content received' );
             return [
                 'success' => false,
-                'message' => 'OpenAI Error: Empty response from API.',
+                'message' => 'AI service returned empty content. Please try again.',
             ];
         }
 
@@ -424,9 +444,10 @@ class Nova_X_AI_Engine {
         // Handle WordPress HTTP errors
         if ( is_wp_error( $response ) ) {
             $error_message = $response->get_error_message();
+            error_log( 'Nova-X: Anthropic API request failed - ' . $error_message );
             return [
                 'success' => false,
-                'message' => 'Anthropic Error: ' . esc_html( $error_message ),
+                'message' => 'Unable to connect to AI service. Please check your API key and try again.',
             ];
         }
 
@@ -438,25 +459,43 @@ class Nova_X_AI_Engine {
         // Handle non-200 status codes
         if ( $code !== 200 ) {
             $error_message = 'HTTP Error ' . $code;
+            $error_type = '';
             
             // Extract error message from Anthropic response if available
             if ( isset( $data['error']['message'] ) ) {
                 $error_message = $data['error']['message'];
-            } elseif ( isset( $data['error']['type'] ) ) {
-                $error_message = $data['error']['type'] . ': ' . ( $data['error']['message'] ?? 'Unknown error' );
+            }
+            if ( isset( $data['error']['type'] ) ) {
+                $error_type = $data['error']['type'];
+                $error_message = ( $error_message !== 'HTTP Error ' . $code ) ? $error_message : $error_type . ': ' . ( $data['error']['message'] ?? 'Unknown error' );
+            }
+            
+            error_log( 'Nova-X: Anthropic API error - HTTP ' . $code . ( $error_type ? ' Type: ' . $error_type : '' ) );
+            
+            // User-friendly message
+            $user_message = 'AI service returned an error. ';
+            if ( $code === 401 ) {
+                $user_message .= 'Please check your API key.';
+            } elseif ( $code === 429 ) {
+                $user_message .= 'Rate limit exceeded. Please try again later.';
+            } elseif ( $code >= 500 ) {
+                $user_message .= 'Service temporarily unavailable. Please try again later.';
+            } else {
+                $user_message .= 'Please try again or contact support.';
             }
             
             return [
                 'success' => false,
-                'message' => 'Anthropic Error: ' . esc_html( $error_message ),
+                'message' => $user_message,
             ];
         }
 
         // Validate response structure
         if ( empty( $data['content'] ) || empty( $data['content'][0]['text'] ) ) {
+            error_log( 'Nova-X: Anthropic API - Invalid response format received' );
             return [
                 'success' => false,
-                'message' => 'Anthropic Error: Invalid response format.',
+                'message' => 'AI service returned an unexpected response. Please try again.',
             ];
         }
 
@@ -464,9 +503,10 @@ class Nova_X_AI_Engine {
         $output = trim( $data['content'][0]['text'] );
         
         if ( empty( $output ) ) {
+            error_log( 'Nova-X: Anthropic API - Empty response content received' );
             return [
                 'success' => false,
-                'message' => 'Anthropic Error: Empty response from API.',
+                'message' => 'AI service returned empty content. Please try again.',
             ];
         }
 
@@ -567,9 +607,10 @@ class Nova_X_AI_Engine {
         // Handle WordPress HTTP errors
         if ( is_wp_error( $response ) ) {
             $error_message = $response->get_error_message();
+            error_log( 'Nova-X: Groq API request failed - ' . $error_message );
             return [
                 'success' => false,
-                'message' => 'Groq Error: ' . esc_html( $error_message ),
+                'message' => 'Unable to connect to AI service. Please check your API key and try again.',
             ];
         }
 
@@ -709,9 +750,10 @@ class Nova_X_AI_Engine {
         // Handle WordPress HTTP errors
         if ( is_wp_error( $response ) ) {
             $error_message = $response->get_error_message();
+            error_log( 'Nova-X: Mistral API request failed - ' . $error_message );
             return [
                 'success' => false,
-                'message' => 'Mistral Error: ' . esc_html( $error_message ),
+                'message' => 'Unable to connect to AI service. Please check your API key and try again.',
             ];
         }
 
@@ -723,25 +765,43 @@ class Nova_X_AI_Engine {
         // Handle non-200 status codes
         if ( $code !== 200 ) {
             $error_message = 'HTTP Error ' . $code;
+            $error_code = '';
             
             // Extract error message from Mistral response if available
             if ( isset( $data['error']['message'] ) ) {
                 $error_message = $data['error']['message'];
-            } elseif ( isset( $data['error']['code'] ) ) {
-                $error_message = $data['error']['code'] . ': ' . ( $data['error']['message'] ?? 'Unknown error' );
+            }
+            if ( isset( $data['error']['code'] ) ) {
+                $error_code = $data['error']['code'];
+                $error_message = ( $error_message !== 'HTTP Error ' . $code ) ? $error_message : $error_code . ': ' . ( $data['error']['message'] ?? 'Unknown error' );
+            }
+            
+            error_log( 'Nova-X: Mistral API error - HTTP ' . $code . ( $error_code ? ' Code: ' . $error_code : '' ) );
+            
+            // User-friendly message
+            $user_message = 'AI service returned an error. ';
+            if ( $code === 401 ) {
+                $user_message .= 'Please check your API key.';
+            } elseif ( $code === 429 ) {
+                $user_message .= 'Rate limit exceeded. Please try again later.';
+            } elseif ( $code >= 500 ) {
+                $user_message .= 'Service temporarily unavailable. Please try again later.';
+            } else {
+                $user_message .= 'Please try again or contact support.';
             }
             
             return [
                 'success' => false,
-                'message' => 'Mistral Error: ' . esc_html( $error_message ),
+                'message' => $user_message,
             ];
         }
 
         // Validate response structure
         if ( empty( $data['choices'] ) || empty( $data['choices'][0]['message']['content'] ) ) {
+            error_log( 'Nova-X: Mistral API - Invalid response format received' );
             return [
                 'success' => false,
-                'message' => 'Mistral Error: Invalid response format.',
+                'message' => 'AI service returned an unexpected response. Please try again.',
             ];
         }
 
@@ -749,9 +809,10 @@ class Nova_X_AI_Engine {
         $output = trim( $data['choices'][0]['message']['content'] );
         
         if ( empty( $output ) ) {
+            error_log( 'Nova-X: Mistral API - Empty response content received' );
             return [
                 'success' => false,
-                'message' => 'Mistral Error: Empty response from API.',
+                'message' => 'AI service returned empty content. Please try again.',
             ];
         }
 
@@ -839,9 +900,11 @@ class Nova_X_AI_Engine {
 
         // Handle WP_Error
         if ( is_wp_error( $response ) ) {
+            $error_message = $response->get_error_message();
+            error_log( 'Nova-X: Gemini API request failed - ' . $error_message );
             return [
                 'success' => false,
-                'message' => esc_html( $response->get_error_message() ),
+                'message' => 'Unable to connect to AI service. Please check your API key and try again.',
             ];
         }
 
@@ -856,9 +919,24 @@ class Nova_X_AI_Engine {
             if ( isset( $data['error']['message'] ) ) {
                 $error_message = esc_html( $data['error']['message'] );
             }
+            
+            error_log( 'Nova-X: Gemini API error - HTTP ' . $code );
+            
+            // User-friendly message
+            $user_message = 'AI service returned an error. ';
+            if ( $code === 401 ) {
+                $user_message .= 'Please check your API key.';
+            } elseif ( $code === 429 ) {
+                $user_message .= 'Rate limit exceeded. Please try again later.';
+            } elseif ( $code >= 500 ) {
+                $user_message .= 'Service temporarily unavailable. Please try again later.';
+            } else {
+                $user_message .= 'Please try again or contact support.';
+            }
+            
             return [
                 'success' => false,
-                'message' => $error_message,
+                'message' => $user_message,
             ];
         }
 

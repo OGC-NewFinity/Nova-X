@@ -196,12 +196,38 @@ class Nova_X_Admin {
             return;
         }
 
+        // Enqueue global theme CSS (load first for variable definitions)
+        wp_enqueue_style(
+            'nova-x-global',
+            NOVA_X_URL . 'admin/assets/css/nova-x-global.css',
+            [],
+            $this->plugin_version
+        );
+
         // Enqueue admin CSS
         wp_enqueue_style(
             'nova-x-admin-style',
             NOVA_X_URL . 'admin/css/nova-x-admin.css',
-            [],
+            [ 'nova-x-global' ],
             $this->plugin_version
+        );
+
+        // Enqueue notices CSS
+        wp_enqueue_style(
+            'nova-x-notices',
+            NOVA_X_URL . 'admin/assets/css/nova-x-notices.css',
+            [ 'nova-x-admin-style' ],
+            $this->plugin_version
+        );
+
+        // Enqueue global theme toggle JS for all Nova-X pages
+        // This ensures theme toggle works on Dashboard, Settings, License, Architecture, Exports, and Beta pages
+        wp_enqueue_script(
+            'nova-x-theme-toggle',
+            NOVA_X_URL . 'admin/assets/js/theme-toggle.js',
+            [ 'jquery' ],
+            $this->plugin_version,
+            true
         );
 
         // Enqueue dashboard JS for dashboard page
@@ -292,8 +318,11 @@ class Nova_X_Admin {
             $theme = 'dark'; // Default to dark theme
         }
         
-        // Logo URL
-        $logo_url = plugin_dir_url( NOVA_X_PLUGIN_FILE ) . 'assets/images/logo/nova-x-logo-crystal-primary.png';
+        // Load UI utilities
+        $ui_utils_path = NOVA_X_PATH . 'admin/includes/ui-utils.php';
+        if ( file_exists( $ui_utils_path ) ) {
+            require_once $ui_utils_path;
+        }
         
         // Load sidebar navigation
         $sidebar_path = NOVA_X_PATH . 'admin/partials/dashboard/sidebar-navigation.php';
@@ -306,90 +335,17 @@ class Nova_X_Admin {
                 <?php endif; ?>
                 
                 <div class="nova-x-dashboard-main nova-x-main" id="nova-x-dashboard-main">
-                    <div class="nova-x-dashboard-header">
-                        <a href="<?php echo esc_url( $dashboard_url ); ?>" class="nova-x-header-logo-link" aria-label="Nova-X Dashboard">
-                            <img src="<?php echo esc_url( $logo_url ); ?>" alt="Nova-X" class="nova-x-header-logo" />
-                        </a>
-                        
-                        <div class="header-controls">
-                            <!-- Account Dropdown -->
-                            <div class="nova-x-header-control nova-x-account-dropdown">
-                                <button type="button" class="icon-button" id="nova-x-account-btn" aria-label="Account Menu" aria-expanded="false">
-                                    👤
-                                </button>
-                                <div class="nova-x-dropdown-menu" id="nova-x-account-menu">
-                                    <a href="#" class="nova-x-dropdown-item">
-                                        <span class="dashicons dashicons-admin-users"></span>
-                                        <span>Profile</span>
-                                    </a>
-                                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=nova-x-settings' ) ); ?>" class="nova-x-dropdown-item">
-                                        <span class="dashicons dashicons-admin-settings"></span>
-                                        <span>Settings</span>
-                                    </a>
-                                    <a href="<?php echo esc_url( wp_logout_url() ); ?>" class="nova-x-dropdown-item">
-                                        <span class="dashicons dashicons-migrate"></span>
-                                        <span>Sign out</span>
-                                    </a>
-                                </div>
-                            </div>
-                            
-                            <!-- Notifications Dropdown -->
-                            <div class="nova-x-header-control nova-x-notifications-dropdown">
-                                <button type="button" class="icon-button" id="nova-x-notifications-btn" aria-label="Notifications" aria-expanded="false">
-                                    🔔
-                                    <span class="nova-x-badge" id="nova-x-notifications-badge">3</span>
-                                </button>
-                                <div class="nova-x-dropdown-menu" id="nova-x-notifications-menu">
-                                    <div class="nova-x-dropdown-header">
-                                        <h3>Notifications</h3>
-                                    </div>
-                                    <div class="nova-x-dropdown-content">
-                                        <a href="#" class="nova-x-notification-item">
-                                            <div class="nova-x-notification-icon">
-                                                <span class="dashicons dashicons-yes-alt"></span>
-                                            </div>
-                                            <div class="nova-x-notification-content">
-                                                <div class="nova-x-notification-title">Theme generated successfully</div>
-                                                <div class="nova-x-notification-time">2 minutes ago</div>
-                                            </div>
-                                        </a>
-                                        <a href="#" class="nova-x-notification-item">
-                                            <div class="nova-x-notification-icon">
-                                                <span class="dashicons dashicons-info"></span>
-                                            </div>
-                                            <div class="nova-x-notification-content">
-                                                <div class="nova-x-notification-title">New feature available</div>
-                                                <div class="nova-x-notification-time">1 hour ago</div>
-                                            </div>
-                                        </a>
-                                        <a href="#" class="nova-x-notification-item">
-                                            <div class="nova-x-notification-icon">
-                                                <span class="dashicons dashicons-update"></span>
-                                            </div>
-                                            <div class="nova-x-notification-content">
-                                                <div class="nova-x-notification-title">System update available</div>
-                                                <div class="nova-x-notification-time">3 hours ago</div>
-                                            </div>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Theme Toggle -->
-                            <div class="nova-x-header-control">
-                                <button type="button" class="icon-button" id="nova-x-theme-toggle" aria-label="Toggle Theme">
-                                    🌗
-                                </button>
-                            </div>
-                            
-                            <!-- Upgrade Button -->
-                            <div class="nova-x-header-control">
-                                <a href="#" class="upgrade-button" id="nova-x-upgrade-link">
-                                    🚀 Upgrade
-                                </a>
-                            </div>
-                        </div>
-                        
+                    <?php
+                    // Render unified header (fixed overlay)
+                    if ( function_exists( 'render_plugin_header' ) ) {
+                        render_plugin_header( [
+                            'notification_count' => 3, // Can be made dynamic
+                            'dashboard_url'      => $dashboard_url,
+                        ] );
+                    }
+                    ?>
+                    
+                    <div class="nova-x-page-content">
                         <!-- Keep top nav tabs for backward compatibility and mobile -->
                         <nav class="nav-tab-wrapper nova-x-tab-wrapper nova-x-top-nav">
                             <?php foreach ( $tabs as $tab_key => $tab_label ) : ?>
@@ -400,9 +356,8 @@ class Nova_X_Admin {
                                 </a>
                             <?php endforeach; ?>
                         </nav>
-                    </div>
 
-                    <div class="nova-x-tab-content" id="nova-x-tab-content">
+                        <div class="nova-x-tab-content" id="nova-x-tab-content">
                         <?php
                         // Render all panels but hide inactive ones
                         $all_tabs = [ 'generate', 'customize', 'preview', 'usage', 'exported' ];
@@ -431,9 +386,9 @@ class Nova_X_Admin {
                             echo '</div>';
                         }
                         ?>
+                        </div>
                     </div>
                 </div>
-            </div>
             </div>
         </div>
         <?php
@@ -541,12 +496,25 @@ class Nova_X_Admin {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nova-x' ) );
         }
+        
+        // Load UI utilities
+        $ui_utils_path = NOVA_X_PATH . 'admin/includes/ui-utils.php';
+        if ( file_exists( $ui_utils_path ) ) {
+            require_once $ui_utils_path;
+        }
         ?>
-        <div class="wrap">
+        <div class="wrap nova-x-dashboard-wrap">
+            <?php
+            // Render unified header
+            if ( function_exists( 'render_plugin_header' ) ) {
+                render_plugin_header();
+            }
+            ?>
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
             <p><?php esc_html_e( 'Manage theme architecture and building logic.', 'nova-x' ); ?></p>
             <div class="nova-x-architecture-container">
                 <p><?php esc_html_e( 'Architecture management features coming soon.', 'nova-x' ); ?></p>
+            </div>
             </div>
         </div>
         <?php
@@ -559,8 +527,20 @@ class Nova_X_Admin {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nova-x' ) );
         }
+        
+        // Load UI utilities
+        $ui_utils_path = NOVA_X_PATH . 'admin/includes/ui-utils.php';
+        if ( file_exists( $ui_utils_path ) ) {
+            require_once $ui_utils_path;
+        }
         ?>
-        <div class="wrap">
+        <div class="wrap nova-x-dashboard-wrap">
+            <?php
+            // Render unified header
+            if ( function_exists( 'render_plugin_header' ) ) {
+                render_plugin_header();
+            }
+            ?>
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
             <p><?php esc_html_e( 'Manage your Nova-X license key.', 'nova-x' ); ?></p>
             <div class="nova-x-license-container">
@@ -585,6 +565,7 @@ class Nova_X_Admin {
                     <?php submit_button( esc_html__( 'Save License', 'nova-x' ) ); ?>
                 </form>
             </div>
+            </div>
         </div>
         <?php
     }
@@ -596,12 +577,25 @@ class Nova_X_Admin {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nova-x' ) );
         }
+        
+        // Load UI utilities
+        $ui_utils_path = NOVA_X_PATH . 'admin/includes/ui-utils.php';
+        if ( file_exists( $ui_utils_path ) ) {
+            require_once $ui_utils_path;
+        }
         ?>
-        <div class="wrap">
+        <div class="wrap nova-x-dashboard-wrap">
+            <?php
+            // Render unified header
+            if ( function_exists( 'render_plugin_header' ) ) {
+                render_plugin_header();
+            }
+            ?>
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
             <p><?php esc_html_e( 'View and manage your exported themes.', 'nova-x' ); ?></p>
             <div class="nova-x-exports-container">
                 <p><?php esc_html_e( 'Exported themes will appear here.', 'nova-x' ); ?></p>
+            </div>
             </div>
         </div>
         <?php
@@ -614,15 +608,26 @@ class Nova_X_Admin {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nova-x' ) );
         }
+        
+        // Load UI utilities
+        $ui_utils_path = NOVA_X_PATH . 'admin/includes/ui-utils.php';
+        if ( file_exists( $ui_utils_path ) ) {
+            require_once $ui_utils_path;
+        }
         ?>
-        <div class="wrap">
+        <div class="wrap nova-x-dashboard-wrap">
+            <?php
+            // Render unified header
+            if ( function_exists( 'render_plugin_header' ) ) {
+                render_plugin_header();
+            }
+            ?>
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
             <p><?php esc_html_e( 'Beta tools and experimental features.', 'nova-x' ); ?></p>
-            <div class="notice notice-warning">
-                <p><strong><?php esc_html_e( 'Warning:', 'nova-x' ); ?></strong> <?php esc_html_e( 'These are beta features and may be unstable. Use at your own risk.', 'nova-x' ); ?></p>
-            </div>
+            <?php echo Nova_X_Notifier::warning( '<strong>' . esc_html__( 'Warning:', 'nova-x' ) . '</strong> ' . esc_html__( 'These are beta features and may be unstable. Use at your own risk.', 'nova-x' ) ); ?>
             <div class="nova-x-beta-container">
                 <p><?php esc_html_e( 'Beta tools coming soon.', 'nova-x' ); ?></p>
+            </div>
             </div>
         </div>
         <?php
@@ -632,6 +637,11 @@ class Nova_X_Admin {
      * Render admin settings page
      */
     public function render_settings_page() {
+        // Load UI utilities
+        $ui_utils_path = NOVA_X_PATH . 'admin/includes/ui-utils.php';
+        if ( file_exists( $ui_utils_path ) ) {
+            require_once $ui_utils_path;
+        }
         ?>
         <style>
             .fade-success {
@@ -651,9 +661,16 @@ class Nova_X_Admin {
                 visibility: visible;
             }
         </style>
-        <div class="wrap">
-            <h1>Nova-X Settings</h1>
-            <form method="post" action="options.php">
+        <div class="wrap nova-x-dashboard-wrap">
+            <?php
+            // Render unified header
+            if ( function_exists( 'render_plugin_header' ) ) {
+                render_plugin_header();
+            }
+            ?>
+            <div class="nova-x-page-content">
+                <h1>Nova-X Settings</h1>
+                <form method="post" action="options.php">
                 <?php
                 settings_fields( 'nova_x_settings_group' );
                 do_settings_sections( 'nova_x_settings_group' );
@@ -773,6 +790,7 @@ class Nova_X_Admin {
                 <button type="button" class="button button-primary" id="nova_x_generate_theme">Generate Theme</button>
                 <span id="nova_x_response" style="margin-left: 10px; font-weight: bold;"></span>
             </p>
+            </div>
         </div>
         <?php
     }

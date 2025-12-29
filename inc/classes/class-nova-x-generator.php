@@ -21,16 +21,44 @@ class Nova_X_Generator {
             $slug = 'nova-x-theme';
         }
 
-        $target_dir = trailingslashit( $this->themes_dir ) . $slug;
-
-        if ( file_exists( $target_dir ) ) {
-            return [
-                'success' => false,
-                'message' => 'Theme folder already exists: ' . $slug,
-            ];
+        // Append timestamp to ensure uniqueness (avoid doubling if already present)
+        if ( ! preg_match( '/-\d{10}$/', $slug ) ) {
+            $timestamp = time();
+            $slug .= '-' . $timestamp;
         }
 
-        wp_mkdir_p( $target_dir );
+        $target_dir = trailingslashit( $this->themes_dir ) . $slug;
+
+        // Check for duplicate directory before creation
+        if ( file_exists( $target_dir ) ) {
+            // Log the conflict
+            error_log( 'Nova-X: Theme folder conflict detected - ' . $slug . ' at ' . $target_dir );
+            
+            // Try to generate a new unique slug with microtime for additional uniqueness
+            $microtime = (int) ( microtime( true ) * 1000 );
+            $slug .= '-' . $microtime;
+            $target_dir = trailingslashit( $this->themes_dir ) . $slug;
+            
+            // Final check - if still exists, return error
+            if ( file_exists( $target_dir ) ) {
+                error_log( 'Nova-X: Theme generation failed - Unable to create unique folder after retry for slug ' . $slug );
+                return [
+                    'success' => false,
+                    'message' => 'Unable to create unique theme folder. Please try again or contact support.',
+                ];
+            }
+        }
+
+        // Create directory
+        $mkdir_result = wp_mkdir_p( $target_dir );
+        
+        if ( ! $mkdir_result ) {
+            error_log( 'Nova-X: Failed to create theme directory - ' . $target_dir );
+            return [
+                'success' => false,
+                'message' => 'Failed to create theme directory. Please check file permissions.',
+            ];
+        }
 
         // Minimal theme files
         $style_css = "/*
@@ -47,11 +75,25 @@ Version: 0.1.0
 
         $footer_php = "<footer style=\"padding:16px;border-top:1px solid #eee;\">\n  <small>Nova-X Theme Architect</small>\n</footer>\n<?php wp_footer(); ?>\n</body>\n</html>\n";
 
-        $this->write_file( $target_dir . '/style.css', $style_css );
-        $this->write_file( $target_dir . '/functions.php', $functions_php );
-        $this->write_file( $target_dir . '/index.php', $index_php );
-        $this->write_file( $target_dir . '/header.php', $header_php );
-        $this->write_file( $target_dir . '/footer.php', $footer_php );
+        // Write theme files and track failures
+        $files_to_write = [
+            'style.css' => $style_css,
+            'functions.php' => $functions_php,
+            'index.php' => $index_php,
+            'header.php' => $header_php,
+            'footer.php' => $footer_php,
+        ];
+        
+        foreach ( $files_to_write as $filename => $content ) {
+            $file_path = $target_dir . '/' . $filename;
+            if ( ! $this->write_file( $file_path, $content ) ) {
+                error_log( 'Nova-X: Theme generation failed - Could not write ' . $filename . ' for theme ' . $slug );
+                return [
+                    'success' => false,
+                    'message' => 'Failed to create theme file. Please check file permissions.',
+                ];
+            }
+        }
 
         return [
             'success' => true,
@@ -64,8 +106,17 @@ Version: 0.1.0
     private function write_file( $path, $content ) {
         $handle = fopen( $path, 'w' );
         if ( $handle ) {
-            fwrite( $handle, $content );
+            $written = fwrite( $handle, $content );
             fclose( $handle );
+            
+            if ( false === $written ) {
+                error_log( 'Nova-X: File write failed - ' . basename( $path ) . ' in ' . dirname( $path ) );
+                return false;
+            }
+            return true;
+        } else {
+            error_log( 'Nova-X: Failed to open file for writing - ' . basename( $path ) . ' in ' . dirname( $path ) );
+            return false;
         }
     }
 }

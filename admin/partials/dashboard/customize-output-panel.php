@@ -23,14 +23,23 @@ if ( ! defined( 'ABSPATH' ) ) {
             <button type="button" class="nova-x-file-tab active" data-file="style">
                 <span class="dashicons dashicons-art"></span>
                 style.css
+                <span class="nova-x-file-tab-info" data-tooltip="<?php esc_attr_e( 'This file is editable only after successful theme generation.', 'nova-x' ); ?>">
+                    <span class="dashicons dashicons-info"></span>
+                </span>
             </button>
             <button type="button" class="nova-x-file-tab" data-file="functions">
                 <span class="dashicons dashicons-editor-code"></span>
                 functions.php
+                <span class="nova-x-file-tab-info" data-tooltip="<?php esc_attr_e( 'This file is editable only after successful theme generation.', 'nova-x' ); ?>">
+                    <span class="dashicons dashicons-info"></span>
+                </span>
             </button>
             <button type="button" class="nova-x-file-tab" data-file="index">
                 <span class="dashicons dashicons-media-code"></span>
                 index.php
+                <span class="nova-x-file-tab-info" data-tooltip="<?php esc_attr_e( 'This file is editable only after successful theme generation.', 'nova-x' ); ?>">
+                    <span class="dashicons dashicons-info"></span>
+                </span>
             </button>
         </div>
 
@@ -41,12 +50,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <label for="nova-x-style-css">
                     <strong><?php esc_html_e( 'style.css', 'nova-x' ); ?></strong>
                 </label>
-                <textarea 
-                    id="nova-x-style-css" 
-                    class="nova-x-code-editor" 
-                    rows="25" 
-                    placeholder="<?php esc_attr_e( 'CSS code will appear here after theme generation...', 'nova-x' ); ?>"
-                ></textarea>
+                <div class="nova-x-code-editor-wrapper">
+                    <textarea 
+                        id="nova-x-style-css" 
+                        class="nova-x-code-editor" 
+                        rows="25" 
+                        placeholder="<?php esc_attr_e( 'CSS code will appear here after theme generation...', 'nova-x' ); ?>"
+                    ></textarea>
+                    <div class="nova-x-empty-state" id="nova-x-empty-style" style="display: none;">
+                        ⚠️ <?php esc_html_e( 'This file is currently empty or not generated. Please try regenerating the theme or check error logs.', 'nova-x' ); ?>
+                    </div>
+                </div>
             </div>
 
             <!-- functions.php Editor -->
@@ -54,12 +68,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <label for="nova-x-functions-php">
                     <strong><?php esc_html_e( 'functions.php', 'nova-x' ); ?></strong>
                 </label>
-                <textarea 
-                    id="nova-x-functions-php" 
-                    class="nova-x-code-editor" 
-                    rows="25" 
-                    placeholder="<?php esc_attr_e( 'PHP code will appear here after theme generation...', 'nova-x' ); ?>"
-                ></textarea>
+                <div class="nova-x-code-editor-wrapper">
+                    <textarea 
+                        id="nova-x-functions-php" 
+                        class="nova-x-code-editor" 
+                        rows="25" 
+                        placeholder="<?php esc_attr_e( 'PHP code will appear here after theme generation...', 'nova-x' ); ?>"
+                    ></textarea>
+                    <div class="nova-x-empty-state" id="nova-x-empty-functions" style="display: none;">
+                        ⚠️ <?php esc_html_e( 'This file is currently empty or not generated. Please try regenerating the theme or check error logs.', 'nova-x' ); ?>
+                    </div>
+                </div>
             </div>
 
             <!-- index.php Editor -->
@@ -67,12 +86,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <label for="nova-x-index-php">
                     <strong><?php esc_html_e( 'index.php', 'nova-x' ); ?></strong>
                 </label>
-                <textarea 
-                    id="nova-x-index-php" 
-                    class="nova-x-code-editor" 
-                    rows="25" 
-                    placeholder="<?php esc_attr_e( 'PHP code will appear here after theme generation...', 'nova-x' ); ?>"
-                ></textarea>
+                <div class="nova-x-code-editor-wrapper">
+                    <textarea 
+                        id="nova-x-index-php" 
+                        class="nova-x-code-editor" 
+                        rows="25" 
+                        placeholder="<?php esc_attr_e( 'PHP code will appear here after theme generation...', 'nova-x' ); ?>"
+                    ></textarea>
+                    <div class="nova-x-empty-state" id="nova-x-empty-index" style="display: none;">
+                        ⚠️ <?php esc_html_e( 'This file is currently empty or not generated. Please try regenerating the theme or check error logs.', 'nova-x' ); ?>
+                    </div>
+                </div>
             </div>
         </div>
 

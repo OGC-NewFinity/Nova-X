@@ -43,9 +43,10 @@ class Nova_X_Theme_Exporter {
         // Get uploads directory
         $upload_dir = wp_upload_dir();
         if ( $upload_dir['error'] ) {
+            error_log( 'Nova-X: Theme export failed - Cannot access uploads directory' );
             return [
                 'success' => false,
-                'message' => 'Failed to access uploads directory.',
+                'message' => 'Failed to access uploads directory. Please check file permissions.',
             ];
         }
 
@@ -111,9 +112,10 @@ class Nova_X_Theme_Exporter {
             $written   = file_put_contents( $file_path, $content );
 
             if ( false === $written ) {
+                error_log( 'Nova-X: Theme export failed - Could not write file ' . $filename . ' for theme ' . $slug );
                 return [
                     'success' => false,
-                    'message' => "Failed to write file: {$filename}",
+                    'message' => 'Failed to create theme file. Please check file permissions.',
                 ];
             }
         }
@@ -215,9 +217,10 @@ Description: AI-generated WordPress theme
     private static function create_zip_archive( $theme_dir, $slug, $export_base ) {
         // Check if ZipArchive is available
         if ( ! class_exists( 'ZipArchive' ) ) {
+            error_log( 'Nova-X: Theme export failed - ZipArchive class not available for theme ' . $slug );
             return [
                 'success' => false,
-                'message' => 'ZipArchive class is not available on this server.',
+                'message' => 'ZIP archive functionality is not available on this server. Please contact your hosting provider.',
             ];
         }
 
@@ -232,9 +235,10 @@ Description: AI-generated WordPress theme
         $zip = new ZipArchive();
         
         if ( $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
+            error_log( 'Nova-X: Theme export failed - Could not create ZIP archive for theme ' . $slug );
             return [
                 'success' => false,
-                'message' => 'Failed to create ZIP archive.',
+                'message' => 'Failed to create ZIP archive. Please check file permissions.',
             ];
         }
 
@@ -256,9 +260,10 @@ Description: AI-generated WordPress theme
         $zip->close();
 
         if ( ! file_exists( $zip_path ) ) {
+            error_log( 'Nova-X: Theme export failed - ZIP file not found after creation for theme ' . $slug );
             return [
                 'success' => false,
-                'message' => 'ZIP archive was not created successfully.',
+                'message' => 'ZIP archive was not created successfully. Please try again.',
             ];
         }
 

@@ -49,6 +49,7 @@ class Nova_X_Architect {
 
         // Check if theme folder already exists.
         if ( file_exists( $target_dir ) ) {
+            error_log( 'Nova-X: Theme building failed - Directory already exists for slug ' . $slug );
             return [
                 'success' => false,
                 'message' => 'Theme folder already exists: ' . $slug,
@@ -56,7 +57,14 @@ class Nova_X_Architect {
         }
 
         // Create theme directory.
-        wp_mkdir_p( $target_dir );
+        $mkdir_result = wp_mkdir_p( $target_dir );
+        if ( ! $mkdir_result ) {
+            error_log( 'Nova-X: Theme building failed - Could not create directory for slug ' . $slug );
+            return [
+                'success' => false,
+                'message' => 'Failed to create theme directory. Please check file permissions.',
+            ];
+        }
 
         // Generate theme files.
         $result = $this->generate_files( $target_dir, $site_title, $prompt );
@@ -99,9 +107,10 @@ Version: 0.1.0
             $written   = file_put_contents( $file_path, $content );
 
             if ( false === $written ) {
+                error_log( 'Nova-X: Theme building failed - Could not write file ' . $filename . ' in ' . $target_dir );
                 return [
                     'success' => false,
-                    'message' => "Failed to write: {$filename}",
+                    'message' => 'Failed to create theme file. Please check file permissions.',
                 ];
             }
         }

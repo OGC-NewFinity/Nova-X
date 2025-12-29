@@ -27,6 +27,8 @@
             this.handleExportedThemes();
             this.initHeaderControls();
             this.initThemeToggle();
+            this.initHeaderOverlay();
+            this.initNotices();
         },
 
         /**
@@ -294,6 +296,11 @@
                                 }
                                 
                                 sessionStorage.setItem('nova_x_generated_code', JSON.stringify(codeData));
+                                
+                                // If on customize tab, trigger a reload of the customize code
+                                if (window.location.search.includes('tab=customize')) {
+                                    $(document).trigger('nova-x-code-updated');
+                                }
                             }
                             
                             // Clear prompt but keep title
@@ -307,14 +314,21 @@
                         
                         if (xhr.status === 0) {
                             errorMessage = 'Network error. Please check your connection.';
+                            console.warn('Nova-X: AJAX request failed - Network error. Theme generation may have incomplete file content.');
                         } else if (xhr.status === 403) {
                             errorMessage = 'Permission denied. Please refresh the page.';
+                            console.warn('Nova-X: AJAX request failed - Permission denied. Check user capabilities.');
                         } else if (xhr.status === 404) {
                             errorMessage = 'API endpoint not found.';
+                            console.warn('Nova-X: AJAX request failed - API endpoint not found. Check REST API routes.');
                         } else if (xhr.status >= 500) {
                             errorMessage = 'Server error. Please try again later.';
+                            console.warn('Nova-X: AJAX request failed - Server error. Theme files may not have been generated properly.');
                         } else if (xhr.responseJSON && xhr.responseJSON.message) {
                             errorMessage = xhr.responseJSON.message;
+                            console.warn('Nova-X: AJAX request failed -', errorMessage);
+                        } else {
+                            console.warn('Nova-X: AJAX request failed with status', xhr.status, '. Theme file content may be incomplete.');
                         }
                         
                         NovaXDashboard.showStatus($status, '❌ ' + errorMessage, 'error');
@@ -684,7 +698,47 @@
                 // Show corresponding content
                 $('.nova-x-file-content').removeClass('active');
                 $('#nova-x-file-' + fileType).addClass('active');
+                
+                // Check empty state for the active tab
+                const $editor = $('#nova-x-' + fileType + (fileType === 'style' ? '-css' : '-php'));
+                const content = $editor.val() || '';
+                checkEmptyState(fileType, content);
             });
+            
+            // Initialize tooltips
+            $('.nova-x-file-tab-info').each(function() {
+                const $info = $(this);
+                const tooltip = $info.attr('data-tooltip');
+                if (tooltip) {
+                    $info.on('mouseenter', function() {
+                        // Simple tooltip implementation
+                        const $tooltip = $('<div class="nova-x-tooltip">' + tooltip + '</div>');
+                        $('body').append($tooltip);
+                        const offset = $info.offset();
+                        $tooltip.css({
+                            top: offset.top - $tooltip.outerHeight() - 8,
+                            left: offset.left + ($info.outerWidth() / 2) - ($tooltip.outerWidth() / 2)
+                        });
+                    }).on('mouseleave', function() {
+                        $('.nova-x-tooltip').remove();
+                    });
+                }
+            });
+
+            // Function to check and display empty state
+            const checkEmptyState = function(fileType, content) {
+                const isEmpty = !content || content.trim() === '';
+                const $editor = $('#nova-x-' + fileType + (fileType === 'style' ? '-css' : '-php'));
+                const $emptyState = $('#nova-x-empty-' + fileType);
+                
+                if (isEmpty) {
+                    $editor.hide();
+                    $emptyState.show();
+                } else {
+                    $editor.show();
+                    $emptyState.hide();
+                }
+            };
 
             // Function to load code from sessionStorage
             const loadCustomizeCode = function() {
@@ -692,28 +746,56 @@
                 if (generatedCode) {
                     try {
                         const codeData = JSON.parse(generatedCode);
+                        
+                        // Load style.css
                         if (codeData.style) {
                             $('#nova-x-style-css').val(codeData.style);
+                            checkEmptyState('style', codeData.style);
                             // Store original if not already stored
                             if (!$originalCode.attr('data-style')) {
                                 $originalCode.attr('data-style', codeData.style);
                             }
+                        } else {
+                            checkEmptyState('style', '');
+                            console.warn('Nova-X: style.css content is empty or not loaded. Please regenerate the theme.');
                         }
+                        
+                        // Load functions.php
                         if (codeData.functions) {
                             $('#nova-x-functions-php').val(codeData.functions);
+                            checkEmptyState('functions', codeData.functions);
                             if (!$originalCode.attr('data-functions')) {
                                 $originalCode.attr('data-functions', codeData.functions);
                             }
+                        } else {
+                            checkEmptyState('functions', '');
+                            console.warn('Nova-X: functions.php content is empty or not loaded. Please regenerate the theme.');
                         }
+                        
+                        // Load index.php
                         if (codeData.index) {
                             $('#nova-x-index-php').val(codeData.index);
+                            checkEmptyState('index', codeData.index);
                             if (!$originalCode.attr('data-index')) {
                                 $originalCode.attr('data-index', codeData.index);
                             }
+                        } else {
+                            checkEmptyState('index', '');
+                            console.warn('Nova-X: index.php content is empty or not loaded. Please regenerate the theme.');
                         }
                     } catch (e) {
-                        console.error('Error parsing generated code:', e);
+                        console.error('Nova-X: Error parsing generated code:', e);
+                        // Show empty states for all files on parse error
+                        checkEmptyState('style', '');
+                        checkEmptyState('functions', '');
+                        checkEmptyState('index', '');
                     }
+                } else {
+                    // No generated code found - show empty states
+                    checkEmptyState('style', '');
+                    checkEmptyState('functions', '');
+                    checkEmptyState('index', '');
+                    console.warn('Nova-X: No generated theme code found. Please generate a theme first.');
                 }
             };
 
@@ -725,6 +807,11 @@
 
             // Also load when clicking customize tab link
             $('.nova-x-tab-wrapper .nav-tab[href*="tab=customize"]').on('click', function() {
+                setTimeout(loadCustomizeCode, 100);
+            });
+            
+            // Listen for code updates from other tabs
+            $(document).on('nova-x-code-updated', function() {
                 setTimeout(loadCustomizeCode, 100);
             });
 
@@ -1270,16 +1357,24 @@
                 }
             });
 
-            // Upgrade button (placeholder - can be customized)
+            // Upgrade button (placeholder - coming soon)
             if ($upgradeLink.length) {
                 $upgradeLink.on('click', function (e) {
-                    // Placeholder: can open modal or navigate to upgrade page
-                    // For now, prevent default and show alert
                     e.preventDefault();
-                    // Uncomment to open upgrade page:
-                    // window.location.href = 'https://example.com/upgrade';
-                    // Or trigger modal:
-                    // NovaXDashboard.openUpgradeModal();
+                    e.stopPropagation();
+                    
+                    // Show "Coming Soon" message
+                    const message = 'Upgrade features are coming soon! Stay tuned for premium features and enhanced capabilities.';
+                    
+                    // Use WordPress admin notice style if available, otherwise simple alert
+                    if (typeof wp !== 'undefined' && wp.data && wp.data.select('core/notices')) {
+                        // Could use WordPress notices API if needed
+                        alert(message);
+                    } else {
+                        alert(message);
+                    }
+                    
+                    return false;
                 });
             }
         },
@@ -1290,6 +1385,9 @@
         initThemeToggle: function () {
             const $themeToggle = $('#nova-x-theme-toggle');
             const $dashboardWrap = $('.nova-x-dashboard-wrap');
+            const $headerBar = $('.nova-x-header-bar');
+            const $themeIconLight = $('#nova-x-theme-icon');
+            const $themeIconDark = $('#nova-x-theme-icon-dark');
 
             if (!$themeToggle.length || !$dashboardWrap.length) {
                 return;
@@ -1308,7 +1406,13 @@
             
             // Apply initial theme
             $dashboardWrap.attr('data-theme', initialTheme);
+            if ($headerBar.length) {
+                $headerBar.attr('data-theme', initialTheme);
+            }
             document.documentElement.setAttribute('data-theme', initialTheme);
+            
+            // Update icon visibility
+            this.updateThemeIcon($themeIconLight, $themeIconDark, initialTheme);
 
             // Handle theme toggle click
             $themeToggle.on('click', function () {
@@ -1317,10 +1421,16 @@
                 
                 // Apply new theme instantly
                 $dashboardWrap.attr('data-theme', newTheme);
+                if ($headerBar.length) {
+                    $headerBar.attr('data-theme', newTheme);
+                }
                 document.documentElement.setAttribute('data-theme', newTheme);
                 
                 // Save preference
                 localStorage.setItem('nova_x_theme_preference', newTheme);
+                
+                // Update icon visibility
+                NovaXDashboard.updateThemeIcon($themeIconLight, $themeIconDark, newTheme);
                 
                 // Save to user meta via AJAX (optional, for persistence across devices)
                 if (typeof novaXDashboard !== 'undefined' && novaXDashboard.restUrl) {
@@ -1350,10 +1460,80 @@
                     if (!localStorage.getItem('nova_x_theme_preference')) {
                         const systemTheme = e.matches ? 'light' : 'dark';
                         $dashboardWrap.attr('data-theme', systemTheme);
+                        if ($headerBar.length) {
+                            $headerBar.attr('data-theme', systemTheme);
+                        }
                         document.documentElement.setAttribute('data-theme', systemTheme);
+                        NovaXDashboard.updateThemeIcon($themeIconLight, $themeIconDark, systemTheme);
                     }
                 });
             }
+        },
+
+        /**
+         * Update theme icon visibility based on current theme
+         * 
+         * @param {jQuery} $lightIcon Light theme icon element
+         * @param {jQuery} $darkIcon Dark theme icon element
+         * @param {string} theme Current theme (light/dark)
+         */
+        updateThemeIcon: function ($lightIcon, $darkIcon, theme) {
+            if (theme === 'light') {
+                if ($lightIcon.length) $lightIcon.show();
+                if ($darkIcon.length) $darkIcon.hide();
+            } else {
+                if ($lightIcon.length) $lightIcon.hide();
+                if ($darkIcon.length) $darkIcon.show();
+            }
+        },
+
+        /**
+         * Initialize notice dismiss functionality
+         */
+        initNotices: function () {
+            // Handle dismissible notices
+            $(document).on('click', '.nova-x-notice-dismiss', function() {
+                const $notice = $(this).closest('.nova-x-notice');
+                $notice.addClass('nova-x-notice-dismissed');
+                setTimeout(function() {
+                    $notice.remove();
+                }, 300);
+            });
+        },
+
+        /**
+         * Initialize header overlay positioning
+         */
+        initHeaderOverlay: function () {
+            const $headerOverlay = $('.nova-x-header-overlay');
+            if (!$headerOverlay.length) {
+                return;
+            }
+
+            // Function to update header position based on sidebar state
+            const updateHeaderPosition = function() {
+                const $body = $('body');
+                const isFolded = $body.hasClass('folded');
+                
+                if (isFolded) {
+                    $headerOverlay.css('left', '36px');
+                } else {
+                    $headerOverlay.css('left', '160px');
+                }
+            };
+
+            // Initial position
+            updateHeaderPosition();
+
+            // Watch for sidebar toggle
+            $(document).on('wp-collapse-menu', function() {
+                setTimeout(updateHeaderPosition, 300); // Wait for animation
+            });
+
+            // Also watch for window resize (responsive)
+            $(window).on('resize', function() {
+                updateHeaderPosition();
+            });
         }
     };
 

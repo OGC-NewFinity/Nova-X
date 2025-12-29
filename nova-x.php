@@ -68,6 +68,7 @@ final class Nova_X_Core {
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-theme-exporter.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-theme-installer.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-usage-tracker.php';
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-notifier.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-admin.php';
         // Initialize REST API
         new Nova_X_REST();
