@@ -10,12 +10,19 @@
    Theme Variables - Dark Mode (Neon Crystal)
    ======================================== */
 
-[data-theme="dark"] {
-    /* Core */
+[data-theme="dark"],
+body[data-theme="dark"],
+html[data-theme="dark"] {
+    /* Core Colors */
     --bg-0: #0B0F14;
-    --bg-1: #0F1620;
+    --bg-1: #11151A;
+    --text-primary: #F4FBFF;
+    --surface-1: #161B22;
+    --border-color: #2C3239;
+    --accent: #4FD1FF;
+    
+    /* Extended Theme Variables */
     --surface-0: rgba(244,251,255,0.04);
-    --surface-1: rgba(244,251,255,0.07);
     --text-0: #F4FBFF;
     --text-1: rgba(244,251,255,0.78);
     --text-2: rgba(244,251,255,0.58);
@@ -45,12 +52,19 @@
    Theme Variables - Light Mode (Crystal Glass)
    ======================================== */
 
-[data-theme="light"] {
-    /* Core */
+[data-theme="light"],
+body[data-theme="light"],
+html[data-theme="light"] {
+    /* Core Colors */
     --bg-0: #F4FBFF;
-    --bg-1: #ECF6FF;
+    --bg-1: #ffffff;
+    --text-primary: #0B0F14;
+    --surface-1: #ffffff;
+    --border-color: #DDEAF2;
+    --accent: #6EF3E6;
+    
+    /* Extended Theme Variables */
     --surface-0: rgba(11,15,20,0.03);
-    --surface-1: rgba(11,15,20,0.06);
     --text-0: #0B0F14;
     --text-1: rgba(11,15,20,0.78);
     --text-2: rgba(11,15,20,0.56);
@@ -76,42 +90,46 @@
     --shadow-soft: 0 10px 28px rgba(11,15,20,0.12);
 }
 
-/* Default to dark theme if no theme is set */
+/* ========================================
+   Default Theme Variables (Light Mode)
+   ======================================== */
+
 :root {
-    /* Core */
-    --bg-0: #0B0F14;
-    --bg-1: #0F1620;
-    --surface-0: rgba(244,251,255,0.04);
-    --surface-1: rgba(244,251,255,0.07);
-    --text-0: #F4FBFF;
-    --text-1: rgba(244,251,255,0.78);
-    --text-2: rgba(244,251,255,0.58);
+    /* Core Colors - Light Mode Default */
+    --bg-0: #F4FBFF;
+    --bg-1: #ffffff;
+    --text-primary: #0B0F14;
+    --surface-1: #ffffff;
+    --border-color: #DDEAF2;
+    --accent: #6EF3E6;
+    
+    /* Extended Theme Variables */
+    --surface-0: rgba(11,15,20,0.03);
+    --text-0: #0B0F14;
+    --text-1: rgba(11,15,20,0.78);
+    --text-2: rgba(11,15,20,0.56);
     
     /* Accents */
-    --primary: #6EF3E6;
-    --secondary: #4FD1FF;
-    --accent: #C77DFF;
-    --accent-2: #FF9EDB;
+    --primary: #22CFC0;
+    --secondary: #1BA8FF;
+    --accent: #9B5CFF;
+    --accent-2: #FF6FC6;
     
     /* Borders */
-    --border-0: rgba(110,243,230,0.22);
-    --border-1: rgba(199,125,255,0.18);
+    --border-0: rgba(11,15,20,0.10);
+    --border-1: rgba(34,207,192,0.22);
     
     /* Gradients */
-    --grad-primary: linear-gradient(135deg,#6EF3E6,#4FD1FF,#C77DFF);
-    --grad-secondary: linear-gradient(135deg,#4FD1FF,#FF9EDB);
-    --grad-surface: linear-gradient(180deg,rgba(110,243,230,0.10),rgba(199,125,255,0.08));
+    --grad-primary: linear-gradient(135deg,rgba(110,243,230,0.55),rgba(79,209,255,0.45),rgba(199,125,255,0.40));
+    --grad-secondary: linear-gradient(135deg,rgba(79,209,255,0.40),rgba(255,158,219,0.35));
+    --grad-surface: linear-gradient(180deg,rgba(79,209,255,0.14),rgba(199,125,255,0.10));
     
     /* Effects */
-    --glow-primary: rgba(110,243,230,0.55);
-    --glow-accent: rgba(199,125,255,0.50);
-    --shadow-soft: 0 12px 40px rgba(0,0,0,0.55);
+    --glow-primary: rgba(34,207,192,0.20);
+    --glow-accent: rgba(155,92,255,0.18);
+    --shadow-soft: 0 10px 28px rgba(11,15,20,0.12);
     
-    /* Layout & Spacing */
-    --header-height: 60px;
-    --spacing-base: 24px;
-    --spacing-small: 12px;
-    --spacing-large: 48px;
+    /* Layout & Spacing - Now defined in nova-x-global.css */
 }
 
 /* ========================================
@@ -126,19 +144,23 @@
     color: var(--text-0);
 }
 
-/* Page content wrapper to avoid header overlap */
-.nova-x-page-content {
-    margin-top: calc(var(--header-height) + 32px);
-    padding: 32px;
-    min-height: calc(100vh - var(--header-height) - 32px);
-    box-sizing: border-box;
-}
-
-/* Ensure wrapper uses column layout */
+/* Wrapper - no margins or padding, stretches edge-to-edge */
 .nova-x-wrapper {
+    padding: 0;
+    margin: 0;
     display: flex;
     flex-direction: column;
     width: 100%;
+}
+
+/* Page content wrapper to avoid header overlap */
+.nova-x-page-content {
+    margin: 0;
+    padding: var(--spacing-base);
+    margin-top: calc(var(--header-height) + var(--spacing-base));
+    width: 100%;
+    min-height: calc(100vh - var(--header-height) - var(--spacing-base));
+    box-sizing: border-box;
 }
 
 .nova-x-dashboard-main {
@@ -155,7 +177,7 @@
     margin-top: 0; /* Notices are now inside nova-x-page-content */
     margin-left: 0;
     margin-right: 0;
-    margin-bottom: 15px;
+    margin-bottom: var(--spacing-small);
 }
 
 /* Nova-X notices should appear at top of content */
@@ -185,36 +207,51 @@
    Sidebar Navigation
    ======================================== */
 
-.nova-x-sidebar {
+/* Dashboard sidebar - scoped to Dashboard page only */
+.nova-x-dashboard-layout .nova-x-sidebar {
     width: 240px;
     background: var(--bg-1);
     border-right: 1px solid var(--border-0);
     display: flex;
     flex-direction: column;
     position: sticky;
-    top: 32px;
+    top: 32px; /* aligns with header overlay top edge */
     height: calc(100vh - 32px);
     overflow-y: auto;
     overflow-x: hidden;
-    transition: width 0.3s ease, transform 0.3s ease;
-    z-index: 100;
+    transition: width 0.3s ease; /* match header transition timing */
+    z-index: 1001;
     box-shadow: var(--shadow-soft);
+    box-sizing: border-box;
 }
 
-.nova-x-sidebar.collapsed {
+.nova-x-dashboard-layout .nova-x-sidebar.collapsed {
     width: 60px;
 }
 
-.nova-x-sidebar-header {
-    padding: 15px;
+/* Ensure toggle button is always visible in collapsed state */
+.nova-x-dashboard-layout .nova-x-sidebar.collapsed .nova-x-toggle-btn {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Dashboard sidebar header - scoped to Dashboard */
+.nova-x-dashboard-layout .nova-x-sidebar-header {
+    padding: var(--spacing-small);
     border-bottom: 1px solid var(--border-0);
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     background: var(--surface-1);
+    min-height: 48px;
+    position: relative;
+    z-index: 1002;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.nova-x-sidebar-title {
+.nova-x-dashboard-layout .nova-x-sidebar-title {
     margin: 0;
     font-size: 18px;
     font-weight: 600;
@@ -223,67 +260,107 @@
     align-items: center;
     white-space: nowrap;
     overflow: hidden;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.2s ease;
 }
 
-.nova-x-sidebar.collapsed .nova-x-sidebar-title {
+.nova-x-dashboard-layout .nova-x-sidebar.collapsed .nova-x-sidebar-title {
     opacity: 0;
     width: 0;
 }
 
-.nova-x-sidebar-title .dashicons {
+.nova-x-dashboard-layout .nova-x-sidebar-title .dashicons {
     color: var(--primary);
     margin-right: 8px;
 }
 
-.nova-x-sidebar-toggle {
+/* Dashboard sidebar toggle button - scoped to Dashboard */
+.nova-x-dashboard-layout .nova-x-toggle-btn {
     background: transparent;
     border: none;
     color: var(--text-2);
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1;
     cursor: pointer;
-    padding: 5px;
+    padding: 6px;
+    margin: 0;
     border-radius: 4px;
     transition: all 0.2s ease;
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
+    min-width: 36px;
+    min-height: 36px;
+    opacity: 1 !important;
+    visibility: visible !important;
+    position: relative;
+    z-index: 1002;
+    text-align: center;
+    vertical-align: middle;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-.nova-x-sidebar-toggle:hover {
+.nova-x-dashboard-layout .nova-x-toggle-btn:hover {
     background: var(--surface-0);
+    color: var(--primary) !important;
+    transform: scale(1.1);
+}
+
+.nova-x-dashboard-layout .nova-x-toggle-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--glow-primary);
     color: var(--primary);
 }
 
-.nova-x-sidebar-toggle .dashicons {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+.nova-x-dashboard-layout .nova-x-toggle-btn:active {
+    transform: scale(0.95);
 }
 
-.nova-x-sidebar-nav {
+/* Ensure button text/icon is always visible */
+.nova-x-dashboard-layout .nova-x-toggle-btn,
+.nova-x-dashboard-layout .nova-x-toggle-btn * {
+    color: inherit;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.nova-x-toggle-icon {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1;
+    display: block;
+    transition: transform 0.2s ease;
+}
+
+.nova-x-dashboard-layout .nova-x-sidebar.collapsed .nova-x-toggle-icon {
+    transform: rotate(90deg);
+}
+
+/* Dashboard sidebar navigation - scoped to Dashboard */
+.nova-x-dashboard-layout .nova-x-sidebar-nav {
     flex: 1;
     padding: 10px 0;
     overflow-y: auto;
 }
 
-.nova-x-sidebar-menu {
+.nova-x-dashboard-layout .nova-x-sidebar-menu {
     list-style: none;
     margin: 0;
     padding: 0;
 }
 
-.nova-x-sidebar-item {
+.nova-x-dashboard-layout .nova-x-sidebar-item {
     margin: 0;
     padding: 0;
 }
 
-.nova-x-sidebar-link {
+.nova-x-dashboard-layout .nova-x-sidebar-link {
     display: flex;
     align-items: center;
-    padding: 12px 20px;
+    padding: var(--spacing-small) 20px;
     color: var(--text-2);
     text-decoration: none;
     transition: all 0.2s ease;
@@ -292,20 +369,20 @@
     white-space: nowrap;
 }
 
-.nova-x-sidebar-link:hover {
+.nova-x-dashboard-layout .nova-x-sidebar-link:hover {
     background: var(--surface-1);
     color: var(--text-0);
     border-left-color: var(--primary);
 }
 
-.nova-x-sidebar-link.active {
+.nova-x-dashboard-layout .nova-x-sidebar-link.active {
     background: var(--surface-1);
     color: var(--primary);
     border-left-color: var(--primary);
     font-weight: 500;
 }
 
-.nova-x-sidebar-link.active::before {
+.nova-x-dashboard-layout .nova-x-sidebar-link.active::before {
     content: '';
     position: absolute;
     right: 0;
@@ -315,7 +392,7 @@
     background: var(--primary);
 }
 
-.nova-x-sidebar-icon {
+.nova-x-dashboard-layout .nova-x-sidebar-icon {
     font-size: 20px;
     width: 20px;
     height: 20px;
@@ -326,65 +403,116 @@
     justify-content: center;
 }
 
-.nova-x-sidebar-label {
-    transition: opacity 0.3s ease;
+.nova-x-dashboard-layout .nova-x-sidebar-label {
+    transition: opacity 0.2s ease, width 0.2s ease;
+    white-space: nowrap;
 }
 
-.nova-x-sidebar.collapsed .nova-x-sidebar-label {
+.nova-x-dashboard-layout .nova-x-sidebar.collapsed .nova-x-sidebar-label {
     opacity: 0;
     width: 0;
     overflow: hidden;
+    text-indent: -9999px;
+    white-space: nowrap;
 }
 
-.nova-x-sidebar.collapsed .nova-x-sidebar-link {
+.nova-x-dashboard-layout .nova-x-sidebar.collapsed .nova-x-sidebar-link {
     justify-content: center;
-    padding: 12px;
+    padding: var(--spacing-small);
+    position: relative;
 }
 
-.nova-x-sidebar.collapsed .nova-x-sidebar-icon {
+.nova-x-dashboard-layout .nova-x-sidebar.collapsed .nova-x-sidebar-icon {
     margin-right: 0;
 }
 
-/* Fixed Header Overlay */
-.nova-x-header-overlay {
+/* Tooltip support for collapsed sidebar icons - Dashboard only */
+.nova-x-dashboard-layout .nova-x-sidebar.collapsed .nova-x-sidebar-link:hover::after {
+    content: attr(title);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 8px;
+    padding: 6px 10px;
+    background: var(--bg-1);
+    color: var(--text-primary);
+    font-size: 13px;
+    white-space: nowrap;
+    border-radius: 4px;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--border-0);
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    animation: tooltipFadeIn 0.2s ease forwards;
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50%) translateX(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(-50%) translateX(0);
+    }
+}
+
+/* Fixed Header Overlay - scoped to Dashboard layout */
+.nova-x-dashboard-layout .nova-x-header-overlay {
     position: fixed;
-    top: 32px; /* below WordPress admin bar */
-    left: 160px; /* matches sidebar width */
+    top: 32px; /* below WordPress admin bar - aligns perfectly with sidebar top edge */
+    left: 240px; /* matches sidebar width when expanded */
     right: 0;
     height: var(--header-height);
     z-index: 1000;
     background-color: var(--bg-0);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    transition: left 0.3s ease;
+    border-bottom: 1px solid var(--border-0);
+    border-top: none; /* No top border to ensure seamless alignment with sidebar */
+    transition: left 0.3s ease; /* Smooth transition matches sidebar width transition */
     display: flex;
     align-items: stretch;
+    box-sizing: border-box;
+}
+
+/* Header overlay adjusts when sidebar is collapsed - using sibling selector */
+.nova-x-dashboard-layout .nova-x-sidebar.collapsed ~ .nova-x-dashboard-main .nova-x-header-overlay {
+    left: 60px; /* matches collapsed sidebar width - ensures perfect alignment */
+}
+
+/* Ensure header overlay doesn't overlap sidebar toggle button */
+.nova-x-dashboard-layout .nova-x-sidebar-header {
+    z-index: 1002;
+    position: relative;
 }
 
 /* Adjust for collapsed sidebar - handled by JS */
 
-/* Unified Header Bar */
-.nova-x-header-bar {
+/* Unified Header Bar - scoped to Dashboard layout */
+.nova-x-dashboard-layout .nova-x-header-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 20px;
+    padding: 0 var(--spacing-base);
     height: 100%;
     flex-wrap: nowrap;
-    gap: 16px;
+    gap: var(--spacing-base);
     width: 100%;
     box-sizing: border-box;
 }
 
-.nova-x-header-left {
+/* Header sections - scoped to Dashboard layout */
+.nova-x-dashboard-layout .nova-x-header-left {
     display: flex;
     align-items: center;
     flex-shrink: 0;
 }
 
-.nova-x-header-right {
+.nova-x-dashboard-layout .nova-x-header-right {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: var(--spacing-base);
     flex-wrap: nowrap;
     flex-shrink: 0;
     min-width: 0;
@@ -392,13 +520,13 @@
 
 /* Dashboard Header (legacy support) */
 .nova-x-dashboard-header {
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-base);
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 15px;
-    padding: 15px 0;
+    gap: var(--spacing-small);
+    padding: var(--spacing-small) 0;
     border-bottom: 1px solid var(--border-0);
 }
 
@@ -564,7 +692,7 @@
 }
 
 .nova-x-dropdown-header {
-    padding: 12px 16px;
+    padding: var(--spacing-small) var(--spacing-base);
     border-bottom: 1px solid var(--border-0);
     background: var(--surface-0);
 }
@@ -584,8 +712,8 @@
 .nova-x-dropdown-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: var(--spacing-small);
+    padding: var(--spacing-small) var(--spacing-base);
     color: var(--text-1);
     text-decoration: none;
     transition: all 0.2s ease;
@@ -616,8 +744,8 @@
 .nova-x-notification-item {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: var(--spacing-small);
+    padding: var(--spacing-small) var(--spacing-base);
     color: var(--text-1);
     text-decoration: none;
     transition: all 0.2s ease;
@@ -748,13 +876,13 @@
 
 /* Responsive Header */
 @media (max-width: 782px) {
-    .nova-x-header-overlay {
+    .nova-x-dashboard-layout .nova-x-header-overlay {
         left: 0 !important; /* Full width on mobile */
         height: auto;
         min-height: var(--header-height);
     }
     
-    .nova-x-header-bar {
+    .nova-x-dashboard-layout .nova-x-header-bar {
         flex-direction: row;
         align-items: center;
         padding: 12px 15px;
@@ -762,7 +890,7 @@
         min-height: var(--header-height);
     }
     
-    .nova-x-header-right {
+    .nova-x-dashboard-layout .nova-x-header-right {
         width: auto;
         justify-content: flex-end;
         margin-top: 0;
@@ -771,8 +899,8 @@
     }
     
     .nova-x-page-content {
-        margin-top: calc(var(--header-height) + 20px);
-        padding: 16px;
+        margin-top: calc(var(--header-height) + var(--spacing-base));
+        padding: var(--spacing-base);
     }
     
     .nova-x-dashboard-header {
@@ -805,19 +933,19 @@
 }
 
 @media (max-width: 600px) {
-    .nova-x-header-bar {
+    .nova-x-dashboard-layout .nova-x-header-bar {
         flex-wrap: wrap;
         gap: 12px;
     }
     
-    .nova-x-header-right {
+    .nova-x-dashboard-layout .nova-x-header-right {
         width: 100%;
         justify-content: flex-end;
         margin-top: 8px;
         gap: 10px;
     }
     
-    .header-controls {
+    .nova-x-dashboard-layout .header-controls {
         width: 100%;
         justify-content: flex-end;
         margin-top: 8px;
@@ -826,16 +954,16 @@
 }
 
 @media (max-width: 480px) {
-    .nova-x-header-bar {
+    .nova-x-dashboard-layout .nova-x-header-bar {
         padding: 10px 12px;
         gap: 10px;
     }
     
-    .nova-x-header-right {
+    .nova-x-dashboard-layout .nova-x-header-right {
         gap: 8px;
     }
     
-    .header-controls {
+    .nova-x-dashboard-layout .header-controls {
         gap: 8px;
     }
     
@@ -912,7 +1040,7 @@
         flex-direction: column;
     }
 
-    .nova-x-sidebar {
+    .nova-x-dashboard-layout .nova-x-sidebar {
         width: 100%;
         height: auto;
         position: relative;
@@ -921,9 +1049,10 @@
         border-bottom: 1px solid var(--border-0);
         max-height: 200px;
         overflow-y: auto;
+        transition: max-height 0.2s ease;
     }
 
-    .nova-x-sidebar.collapsed {
+    .nova-x-dashboard-layout .nova-x-sidebar.collapsed {
         max-height: 60px;
         overflow: hidden;
     }
@@ -934,11 +1063,11 @@
 
     .nova-x-top-nav {
         display: block;
-        margin-top: 15px;
+        margin-top: var(--spacing-small);
     }
 
-    .nova-x-sidebar-toggle {
-        display: none; /* Hide toggle on mobile, always show nav */
+    .nova-x-dashboard-layout .nova-x-toggle-btn {
+        display: flex; /* Show toggle on mobile */
     }
     
     /* Reduce section spacing on mobile */
@@ -978,12 +1107,13 @@
     }
     
     .nova-x-page-content {
-        padding: 16px;
+        padding: var(--spacing-base);
+        margin-top: calc(var(--header-height) + var(--spacing-base));
     }
     
     .nova-x-section {
-        margin-bottom: 16px;
-        padding: 12px;
+        margin-bottom: var(--spacing-base);
+        padding: var(--spacing-small);
         border-radius: 8px;
     }
 }
@@ -991,8 +1121,8 @@
 .nova-x-dashboard-wrap h1 {
     margin-bottom: 20px;
     font-size: 28px;
-    font-weight: 500;
-    color: var(--text-0);
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 /* ========================================
@@ -1087,7 +1217,7 @@
 .nova-x-section h3,
 .nova-x-dashboard-wrap h3 {
     margin-top: 0;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
@@ -1099,22 +1229,24 @@
 .nova-x-section p,
 .nova-x-dashboard-wrap p {
     margin-top: 0;
-    margin-bottom: var(--spacing-small);
+    margin-bottom: 12px;
+    font-size: 14px;
     line-height: 1.6;
-    color: var(--text-1);
+    color: var(--text-primary);
 }
 
 .nova-x-form-group {
     margin-bottom: var(--spacing-small);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-small);
+    gap: 12px;
 }
 
 .nova-x-form-group label {
+    font-size: 14px;
     font-weight: 500;
-    color: var(--text-1);
-    margin-bottom: 4px;
+    color: var(--text-primary);
+    margin-bottom: 0;
 }
 
 
@@ -1126,17 +1258,28 @@
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-.nova-x-generate-form .form-table th {
+.nova-x-generate-form .form-table th,
+.nova-x-dashboard-wrap .form-table th {
     width: 200px;
     font-weight: 500;
-    font-size: 15px;
-    padding: 15px 10px 15px 0;
-    color: var(--text-0);
+    font-size: 14px;
+    padding: var(--spacing-small) 10px var(--spacing-small) 0;
+    color: var(--text-primary);
     vertical-align: top;
 }
 
-.nova-x-generate-form .form-table td {
-    padding: 15px 10px;
+.nova-x-generate-form .form-table td,
+.nova-x-dashboard-wrap .form-table td {
+    padding: var(--spacing-small) 10px;
+}
+
+.nova-x-dashboard-wrap .form-table th + td {
+    padding-left: var(--spacing-small);
+}
+
+/* Ensure consistent label-input spacing in form tables */
+.nova-x-dashboard-wrap .form-table th {
+    padding-right: var(--spacing-small);
 }
 
 /* Normalized Input Styles - Apply to all inputs */
@@ -1196,13 +1339,15 @@
     cursor: pointer;
 }
 
-.nova-x-generate-form label {
+.nova-x-generate-form label,
+.nova-x-dashboard-wrap label,
+.nova-x-section label {
+    font-size: 14px;
     font-weight: 500;
-    font-size: 15px;
-    color: var(--text-0);
+    color: var(--text-primary);
     display: inline-flex;
     align-items: center;
-    margin-bottom: 5px;
+    margin-bottom: 0;
 }
 
 .nova-x-generate-form label .dashicons {
@@ -1213,10 +1358,14 @@
     color: var(--text-2);
 }
 
-.nova-x-generate-form .description {
-    font-size: 13px;
+.nova-x-generate-form .description,
+.nova-x-dashboard-wrap .description,
+.nova-x-section .description {
+    font-size: 14px;
     color: var(--text-2);
     margin-top: 6px;
+    margin-bottom: 0;
+    line-height: 1.6;
     display: block;
 }
 
@@ -1455,7 +1604,7 @@
 .nova-x-usage-table th {
     font-weight: 500;
     font-size: 14px;
-    padding: 12px 15px;
+    padding: var(--spacing-small) var(--spacing-small);
     background: var(--surface-0);
     border-bottom: 2px solid var(--border-0);
     color: var(--text-0);
@@ -1727,9 +1876,6 @@
     margin-top: 20px;
 }
 
-.nova-x-generate-form .form-table th {
-    width: 200px;
-}
 
 .nova-x-generate-form textarea {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
@@ -2267,30 +2413,10 @@
   margin-left: 60px;
 }
 
-.nova-x-toggle-btn {
-  color: var(--text-2);
-  transition: all 0.2s ease;
-}
-
-.nova-x-toggle-btn:hover {
-  color: var(--primary);
-  background: var(--surface-0);
-}
+/* Legacy toggle button styles removed - use .nova-x-dashboard-layout .nova-x-toggle-btn instead */
 
 
-/* Toggle button */
-.nova-x-sidebar-toggle {
-  background: none;
-  border: none;
-  color: var(--text-0);
-  font-size: 20px;
-  cursor: pointer;
-  padding: 6px;
-}
-
-.nova-x-sidebar-toggle:hover {
-  color: var(--primary);
-}
+/* Toggle button - legacy support removed, use .nova-x-toggle-btn instead */
 
 /* Sidebar collapsed logic */
 .nova-x-wrapper.collapsed .nova-x-sidebar {

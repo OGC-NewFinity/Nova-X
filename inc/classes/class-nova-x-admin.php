@@ -225,9 +225,26 @@ class Nova_X_Admin {
         wp_enqueue_script(
             'nova-x-theme-toggle',
             NOVA_X_URL . 'admin/assets/js/theme-toggle.js',
-            [ 'jquery' ],
+            [], // No dependencies - pure vanilla JS
             $this->plugin_version,
             true
+        );
+        
+        // Get theme preference from user meta (defaults to 'dark' if not set)
+        $default_theme = get_user_meta( get_current_user_id(), 'nova_x_theme_preference', true );
+        if ( empty( $default_theme ) ) {
+            $default_theme = 'dark';
+        }
+        
+        // Localize script to pass default theme to JavaScript
+        wp_localize_script(
+            'nova-x-theme-toggle',
+            'novaXTheme',
+            [
+                'defaultTheme' => $default_theme,
+                'restUrl'      => esc_url_raw( rest_url( 'nova-x/v1/' ) ),
+                'nonce'        => wp_create_nonce( 'wp_rest' ),
+            ]
         );
 
         // Enqueue dashboard JS for dashboard page
@@ -327,7 +344,7 @@ class Nova_X_Admin {
         // Load sidebar navigation
         $sidebar_path = NOVA_X_PATH . 'admin/partials/dashboard/sidebar-navigation.php';
         ?>
-        <div class="wrap nova-x-dashboard-wrap" data-theme="<?php echo esc_attr( $theme ); ?>">
+        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap" data-theme="<?php echo esc_attr( $theme ); ?>">
             <div id="nova-x-wrapper" class="nova-x-wrapper">
             <div class="nova-x-dashboard-layout">
                 <?php if ( file_exists( $sidebar_path ) ) : ?>
@@ -503,18 +520,19 @@ class Nova_X_Admin {
             require_once $ui_utils_path;
         }
         ?>
-        <div class="wrap nova-x-dashboard-wrap">
+        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap">
             <?php
             // Render unified header
             if ( function_exists( 'render_plugin_header' ) ) {
                 render_plugin_header();
             }
             ?>
-            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-            <p><?php esc_html_e( 'Manage theme architecture and building logic.', 'nova-x' ); ?></p>
-            <div class="nova-x-architecture-container">
-                <p><?php esc_html_e( 'Architecture management features coming soon.', 'nova-x' ); ?></p>
-            </div>
+            <div class="nova-x-page-content">
+                <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+                <p><?php esc_html_e( 'Manage theme architecture and building logic.', 'nova-x' ); ?></p>
+                <section class="nova-x-section nova-x-architecture-container">
+                    <p><?php esc_html_e( 'Architecture management features coming soon.', 'nova-x' ); ?></p>
+                </section>
             </div>
         </div>
         <?php
@@ -534,37 +552,38 @@ class Nova_X_Admin {
             require_once $ui_utils_path;
         }
         ?>
-        <div class="wrap nova-x-dashboard-wrap">
+        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap">
             <?php
             // Render unified header
             if ( function_exists( 'render_plugin_header' ) ) {
                 render_plugin_header();
             }
             ?>
-            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-            <p><?php esc_html_e( 'Manage your Nova-X license key.', 'nova-x' ); ?></p>
-            <div class="nova-x-license-container">
-                <form method="post" action="">
-                    <?php wp_nonce_field( 'nova_x_license_save', 'nova_x_license_nonce' ); ?>
-                    <table class="form-table">
-                        <tr>
-                            <th scope="row">
-                                <label for="nova_x_license_key"><?php esc_html_e( 'License Key', 'nova-x' ); ?></label>
-                            </th>
-                            <td>
-                                <input type="text" 
-                                       id="nova_x_license_key" 
-                                       name="license_key" 
-                                       class="regular-text" 
-                                       value="<?php echo esc_attr( get_option( 'nova_x_license_key', '' ) ); ?>" 
-                                       placeholder="<?php esc_attr_e( 'Enter your license key...', 'nova-x' ); ?>" />
-                                <p class="description"><?php esc_html_e( 'Enter your Nova-X license key to activate premium features.', 'nova-x' ); ?></p>
-                            </td>
-                        </tr>
-                    </table>
-                    <?php submit_button( esc_html__( 'Save License', 'nova-x' ) ); ?>
-                </form>
-            </div>
+            <div class="nova-x-page-content">
+                <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+                <p><?php esc_html_e( 'Manage your Nova-X license key.', 'nova-x' ); ?></p>
+                <section class="nova-x-section nova-x-license-container">
+                    <form method="post" action="">
+                        <?php wp_nonce_field( 'nova_x_license_save', 'nova_x_license_nonce' ); ?>
+                        <table class="form-table">
+                            <tr>
+                                <th scope="row">
+                                    <label for="nova_x_license_key"><?php esc_html_e( 'License Key', 'nova-x' ); ?></label>
+                                </th>
+                                <td>
+                                    <input type="text" 
+                                           id="nova_x_license_key" 
+                                           name="license_key" 
+                                           class="regular-text" 
+                                           value="<?php echo esc_attr( get_option( 'nova_x_license_key', '' ) ); ?>" 
+                                           placeholder="<?php esc_attr_e( 'Enter your license key...', 'nova-x' ); ?>" />
+                                    <p class="description"><?php esc_html_e( 'Enter your Nova-X license key to activate premium features.', 'nova-x' ); ?></p>
+                                </td>
+                            </tr>
+                        </table>
+                        <?php submit_button( esc_html__( 'Save License', 'nova-x' ) ); ?>
+                    </form>
+                </section>
             </div>
         </div>
         <?php
@@ -584,18 +603,19 @@ class Nova_X_Admin {
             require_once $ui_utils_path;
         }
         ?>
-        <div class="wrap nova-x-dashboard-wrap">
+        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap">
             <?php
             // Render unified header
             if ( function_exists( 'render_plugin_header' ) ) {
                 render_plugin_header();
             }
             ?>
-            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-            <p><?php esc_html_e( 'View and manage your exported themes.', 'nova-x' ); ?></p>
-            <div class="nova-x-exports-container">
-                <p><?php esc_html_e( 'Exported themes will appear here.', 'nova-x' ); ?></p>
-            </div>
+            <div class="nova-x-page-content">
+                <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+                <p><?php esc_html_e( 'View and manage your exported themes.', 'nova-x' ); ?></p>
+                <section class="nova-x-section nova-x-exports-container">
+                    <p><?php esc_html_e( 'Exported themes will appear here.', 'nova-x' ); ?></p>
+                </section>
             </div>
         </div>
         <?php
@@ -615,19 +635,20 @@ class Nova_X_Admin {
             require_once $ui_utils_path;
         }
         ?>
-        <div class="wrap nova-x-dashboard-wrap">
+        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap">
             <?php
             // Render unified header
             if ( function_exists( 'render_plugin_header' ) ) {
                 render_plugin_header();
             }
             ?>
-            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-            <p><?php esc_html_e( 'Beta tools and experimental features.', 'nova-x' ); ?></p>
-            <?php echo Nova_X_Notifier::warning( '<strong>' . esc_html__( 'Warning:', 'nova-x' ) . '</strong> ' . esc_html__( 'These are beta features and may be unstable. Use at your own risk.', 'nova-x' ) ); ?>
-            <div class="nova-x-beta-container">
-                <p><?php esc_html_e( 'Beta tools coming soon.', 'nova-x' ); ?></p>
-            </div>
+            <div class="nova-x-page-content">
+                <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+                <p><?php esc_html_e( 'Beta tools and experimental features.', 'nova-x' ); ?></p>
+                <?php echo Nova_X_Notifier::warning( '<strong>' . esc_html__( 'Warning:', 'nova-x' ) . '</strong> ' . esc_html__( 'These are beta features and may be unstable. Use at your own risk.', 'nova-x' ) ); ?>
+                <div class="nova-x-beta-container">
+                    <p><?php esc_html_e( 'Beta tools coming soon.', 'nova-x' ); ?></p>
+                </div>
             </div>
         </div>
         <?php
@@ -661,7 +682,7 @@ class Nova_X_Admin {
                 visibility: visible;
             }
         </style>
-        <div class="wrap nova-x-dashboard-wrap">
+        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap">
             <?php
             // Render unified header
             if ( function_exists( 'render_plugin_header' ) ) {
@@ -670,126 +691,119 @@ class Nova_X_Admin {
             ?>
             <div class="nova-x-page-content">
                 <h1>Nova-X Settings</h1>
-                <form method="post" action="options.php">
-                <?php
-                settings_fields( 'nova_x_settings_group' );
-                do_settings_sections( 'nova_x_settings_group' );
-                ?>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">API Provider</th>
-                        <td>
-                            <select name="nova_x_provider">
-                                <?php
-                                $selected = esc_attr( get_option( 'nova_x_provider', 'openai' ) );
-                                $providers = [ 'openai' => 'OpenAI', 'anthropic' => 'Anthropic', 'groq' => 'Groq', 'mistral' => 'Mistral', 'gemini' => 'Gemini' ];
-                                foreach ( $providers as $value => $label ) {
-                                    echo "<option value='" . esc_attr( $value ) . "' " . selected( $selected, $value, false ) . ">$label</option>";
-                                }
-                                ?>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">API Key</th>
-                        <td>
-                            <input type="text" name="nova_x_api_key" value="<?php echo esc_attr( get_option( 'nova_x_api_key' ) ); ?>" class="regular-text" />
-                            <p class="description">Enter your API key for the selected provider.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">Token Management</th>
-                        <td>
-                            <button type="button" class="button rotate-token-btn" data-provider="<?php echo esc_attr( get_option( 'nova_x_provider', 'openai' ) ); ?>">
-                                🔁 Rotate Token
-                            </button>
-                            <span class="rotate-token-status" style="margin-left: 10px; font-weight: bold;"></span>
-                            <p class="description">Rotate the encrypted API token for the selected provider. This will replace the existing token.</p>
-                        </td>
-                    </tr>
-                </table>
-                <?php submit_button( 'Save Settings' ); ?>
-            </form>
+                
+                <section class="nova-x-section">
+                    <h2><?php esc_html_e( 'API Configuration', 'nova-x' ); ?></h2>
+                    <form method="post" action="options.php">
+                        <?php
+                        settings_fields( 'nova_x_settings_group' );
+                        do_settings_sections( 'nova_x_settings_group' );
+                        ?>
+                        <table class="form-table">
+                            <tr>
+                                <th scope="row"><?php esc_html_e( 'API Provider', 'nova-x' ); ?></th>
+                                <td>
+                                    <select name="nova_x_provider">
+                                        <?php
+                                        $selected = esc_attr( get_option( 'nova_x_provider', 'openai' ) );
+                                        $providers = [ 'openai' => 'OpenAI', 'anthropic' => 'Anthropic', 'groq' => 'Groq', 'mistral' => 'Mistral', 'gemini' => 'Gemini' ];
+                                        foreach ( $providers as $value => $label ) {
+                                            echo "<option value='" . esc_attr( $value ) . "' " . selected( $selected, $value, false ) . ">" . esc_html( $label ) . "</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><?php esc_html_e( 'API Key', 'nova-x' ); ?></th>
+                                <td>
+                                    <input type="text" name="nova_x_api_key" value="<?php echo esc_attr( get_option( 'nova_x_api_key' ) ); ?>" class="regular-text" />
+                                    <p class="description"><?php esc_html_e( 'Enter your API key for the selected provider.', 'nova-x' ); ?></p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><?php esc_html_e( 'Token Management', 'nova-x' ); ?></th>
+                                <td>
+                                    <button type="button" class="button rotate-token-btn" data-provider="<?php echo esc_attr( get_option( 'nova_x_provider', 'openai' ) ); ?>">
+                                        🔁 <?php esc_html_e( 'Rotate Token', 'nova-x' ); ?>
+                                    </button>
+                                    <span class="rotate-token-status" style="margin-left: 10px; font-weight: bold;"></span>
+                                    <p class="description"><?php esc_html_e( 'Rotate the encrypted API token for the selected provider. This will replace the existing token.', 'nova-x' ); ?></p>
+                                </td>
+                            </tr>
+                        </table>
+                        <?php submit_button( esc_html__( 'Save Settings', 'nova-x' ) ); ?>
+                    </form>
+                </section>
 
-            <hr>
-
-            <h2>Usage Statistics</h2>
-            <?php
-            // Load Usage Tracker
-            require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-usage-tracker.php';
-            $total_tokens = Nova_X_Usage_Tracker::get_formatted_tokens();
-            $total_cost = Nova_X_Usage_Tracker::get_formatted_cost();
-            $provider_data = Nova_X_Usage_Tracker::get_all_provider_data();
-            ?>
-            <table class="form-table">
-                <tr>
-                    <th scope="row">Total Tokens Used</th>
-                    <td>
-                        <strong style="font-size: 16px;">🔢 <?php echo esc_html( $total_tokens ); ?></strong>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">Total Estimated Cost</th>
-                    <td>
-                        <strong style="font-size: 16px;">💵 $<?php echo esc_html( $total_cost ); ?> USD</strong>
-                    </td>
-                </tr>
-            </table>
-
-            <h3>Per-Provider Breakdown</h3>
-            <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th style="width: 200px;">Provider</th>
-                        <th style="text-align: right;">Tokens Used</th>
-                        <th style="text-align: right;">Cost (USD)</th>
-                        <th style="text-align: right;">% of Total</th>
-                    </tr>
-                </thead>
-                <tbody>
+                <section class="nova-x-section">
+                    <h2><?php esc_html_e( 'Usage Statistics', 'nova-x' ); ?></h2>
                     <?php
-                    $total_tokens_num = Nova_X_Usage_Tracker::get_total_tokens();
-                    $total_cost_num = Nova_X_Usage_Tracker::get_total_cost();
-                    
-                    if ( empty( $provider_data ) || $total_tokens_num === 0 ) {
-                        echo '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;">No usage data yet. Generate a theme to see statistics.</td></tr>';
-                    } else {
-                        foreach ( $provider_data as $provider => $data ) {
-                            if ( $data['tokens'] > 0 ) {
-                                $token_percent = $total_tokens_num > 0 
-                                    ? round( ( $data['tokens'] / $total_tokens_num ) * 100, 1 ) 
-                                    : 0;
-                                $cost_percent = $total_cost_num > 0 
-                                    ? round( ( $data['cost'] / $total_cost_num ) * 100, 1 ) 
-                                    : 0;
-                                
-                                echo '<tr>';
-                                echo '<td><strong>' . esc_html( $data['label'] ) . '</strong></td>';
-                                echo '<td style="text-align: right;">' . esc_html( number_format( $data['tokens'] ) ) . '</td>';
-                                echo '<td style="text-align: right;">$' . esc_html( number_format( $data['cost'], 4 ) ) . '</td>';
-                                echo '<td style="text-align: right;">' . esc_html( $token_percent ) . '%</td>';
-                                echo '</tr>';
-                            }
-                        }
-                    }
+                    // Load Usage Tracker
+                    require_once plugin_dir_path( __FILE__ ) . 'class-nova-x-usage-tracker.php';
+                    $total_tokens = Nova_X_Usage_Tracker::get_formatted_tokens();
+                    $total_cost = Nova_X_Usage_Tracker::get_formatted_cost();
+                    $provider_data = Nova_X_Usage_Tracker::get_all_provider_data();
                     ?>
-                </tbody>
-            </table>
-            <p>
-                <button type="button" class="button" id="nova_x_reset_tracker">🔄 Reset Tracker</button>
-                <span id="nova_x_reset_status" style="margin-left: 10px; font-weight: bold;"></span>
-            </p>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Total Tokens Used', 'nova-x' ); ?></th>
+                            <td>
+                                <strong style="font-size: 16px;">🔢 <?php echo esc_html( $total_tokens ); ?></strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Total Estimated Cost', 'nova-x' ); ?></th>
+                            <td>
+                                <strong style="font-size: 16px;">💵 $<?php echo esc_html( $total_cost ); ?> USD</strong>
+                            </td>
+                        </tr>
+                    </table>
 
-            <hr>
-
-            <h2>Generate Theme</h2>
-            <p>
-                <input type="text" id="nova_x_site_title" placeholder="Site Title" class="regular-text" />
-                <br><br>
-                <textarea id="nova_x_prompt" placeholder="Describe the theme..." class="large-text" rows="4"></textarea><br><br>
-                <button type="button" class="button button-primary" id="nova_x_generate_theme">Generate Theme</button>
-                <span id="nova_x_response" style="margin-left: 10px; font-weight: bold;"></span>
-            </p>
+                    <h3><?php esc_html_e( 'Per-Provider Breakdown', 'nova-x' ); ?></h3>
+                    <table class="wp-list-table widefat fixed striped">
+                        <thead>
+                            <tr>
+                                <th style="width: 200px;"><?php esc_html_e( 'Provider', 'nova-x' ); ?></th>
+                                <th style="text-align: right;"><?php esc_html_e( 'Tokens Used', 'nova-x' ); ?></th>
+                                <th style="text-align: right;"><?php esc_html_e( 'Cost (USD)', 'nova-x' ); ?></th>
+                                <th style="text-align: right;"><?php esc_html_e( '% of Total', 'nova-x' ); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            $total_tokens_num = Nova_X_Usage_Tracker::get_total_tokens();
+                            $total_cost_num = Nova_X_Usage_Tracker::get_total_cost();
+                            
+                            if ( empty( $provider_data ) || $total_tokens_num === 0 ) {
+                                echo '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;">' . esc_html__( 'No usage data yet. Generate a theme to see statistics.', 'nova-x' ) . '</td></tr>';
+                            } else {
+                                foreach ( $provider_data as $provider => $data ) {
+                                    if ( $data['tokens'] > 0 ) {
+                                        $token_percent = $total_tokens_num > 0 
+                                            ? round( ( $data['tokens'] / $total_tokens_num ) * 100, 1 ) 
+                                            : 0;
+                                        $cost_percent = $total_cost_num > 0 
+                                            ? round( ( $data['cost'] / $total_cost_num ) * 100, 1 ) 
+                                            : 0;
+                                        
+                                        echo '<tr>';
+                                        echo '<td><strong>' . esc_html( $data['label'] ) . '</strong></td>';
+                                        echo '<td style="text-align: right;">' . esc_html( number_format( $data['tokens'] ) ) . '</td>';
+                                        echo '<td style="text-align: right;">$' . esc_html( number_format( $data['cost'], 4 ) ) . '</td>';
+                                        echo '<td style="text-align: right;">' . esc_html( $token_percent ) . '%</td>';
+                                        echo '</tr>';
+                                    }
+                                }
+                            }
+                            ?>
+                        </tbody>
+                    </table>
+                    <p>
+                        <button type="button" class="button" id="nova_x_reset_tracker">🔄 <?php esc_html_e( 'Reset Tracker', 'nova-x' ); ?></button>
+                        <span id="nova_x_reset_status" style="margin-left: 10px; font-weight: bold;"></span>
+                    </p>
+                </section>
             </div>
         </div>
         <?php

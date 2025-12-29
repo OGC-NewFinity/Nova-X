@@ -45,7 +45,9 @@ $nav_items = [
 <aside class="nova-x-sidebar" id="nova-x-sidebar">
     <!-- Nova-X Sidebar Header -->
     <div class="nova-x-sidebar-header">
-      <button id="nova-x-sidebar-toggle" class="nova-x-sidebar-toggle dashicons dashicons-menu" type="button" aria-label="Toggle Sidebar"></button>
+      <button id="novaX_sidebar_toggle" class="nova-x-toggle-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+        &#9776;
+      </button>
     </div>
     
     <nav class="nova-x-sidebar-nav" id="nova-x-sidebar-nav">
@@ -55,7 +57,8 @@ $nav_items = [
                     <a href="#" 
                        class="nova-x-sidebar-link <?php echo $current_tab === $tab_key ? 'active' : ''; ?>" 
                        data-tab="<?php echo esc_attr( $tab_key ); ?>"
-                       aria-label="<?php echo esc_attr( $item['label'] ); ?>">
+                       aria-label="<?php echo esc_attr( $item['label'] ); ?>"
+                       title="<?php echo esc_attr( $item['label'] ); ?>">
                         <span class="nova-x-sidebar-icon dashicons <?php echo esc_attr( $item['icon'] ); ?>"></span>
                         <span class="nova-x-sidebar-label"><?php echo esc_html( $item['label'] ); ?></span>
                     </a>

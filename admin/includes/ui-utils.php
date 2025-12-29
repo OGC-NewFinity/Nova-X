@@ -34,6 +34,10 @@ function render_plugin_header( $args = [] ) {
         $current_theme = 'dark';
     }
     
+    // Set initial icon visibility based on theme
+    $light_icon_style = ( $current_theme === 'light' ) ? '' : 'display: none;';
+    $dark_icon_style = ( $current_theme === 'dark' ) ? '' : 'display: none;';
+    
     ?>
     <div class="nova-x-header-overlay" data-theme="<?php echo esc_attr( $current_theme ); ?>">
         <div class="nova-x-header-bar">
@@ -102,11 +106,11 @@ function render_plugin_header( $args = [] ) {
             <!-- Theme Toggle -->
             <div class="nova-x-header-control">
                 <button type="button" class="icon-button" id="nova-x-theme-toggle" aria-label="Toggle Theme" data-theme-toggle>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" id="nova-x-theme-icon-light" class="theme-icon-light">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" id="nova-x-theme-icon-light" class="theme-icon-light" style="<?php echo esc_attr( $light_icon_style ); ?>">
                         <circle cx="12" cy="12" r="5" fill="currentColor"/>
                         <path d="M12 2V4M12 20V22M4 12H2M6.31412 6.31412L4.8999 4.8999M17.6859 6.31412L19.1001 4.8999M6.31412 17.69L4.8999 19.1042M17.6859 17.69L19.1001 19.1042M22 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" id="nova-x-theme-icon-dark" class="theme-icon-dark" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" id="nova-x-theme-icon-dark" class="theme-icon-dark" style="<?php echo esc_attr( $dark_icon_style ); ?>">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" fill="currentColor"/>
                     </svg>
                 </button>

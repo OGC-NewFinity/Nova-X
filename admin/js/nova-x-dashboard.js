@@ -26,7 +26,8 @@
             this.handleUsageStats();
             this.handleExportedThemes();
             this.initHeaderControls();
-            this.initThemeToggle();
+            // Theme toggle is now handled by theme-toggle.js globally
+            // No need to initialize here
             this.initHeaderOverlay();
             this.initNotices();
         },
@@ -37,7 +38,6 @@
         initSidebarNavigation: function () {
             const $sidebar = $('#nova-x-sidebar');
             const $sidebarLinks = $('.nova-x-sidebar-link');
-            const $toggleBtn = $('#nova-x-sidebar-toggle');
             const $topNavTabs = $('.nova-x-top-nav .nav-tab');
 
             if (!$sidebar.length) {
@@ -65,29 +65,8 @@
                 NovaXDashboard.switchTab(tab);
             });
 
-            // Handle sidebar toggle (collapse/expand)
-            $toggleBtn.on('click', function() {
-                $sidebar.toggleClass('collapsed');
-                const isCollapsed = $sidebar.hasClass('collapsed');
-                
-                // Update toggle icon
-                const $icon = $toggleBtn.find('.dashicons');
-                if (isCollapsed) {
-                    $icon.removeClass('dashicons-arrow-left-alt2').addClass('dashicons-arrow-right-alt2');
-                } else {
-                    $icon.removeClass('dashicons-arrow-right-alt2').addClass('dashicons-arrow-left-alt2');
-                }
-
-                // Store state in localStorage
-                localStorage.setItem('nova_x_sidebar_collapsed', isCollapsed ? '1' : '0');
-            });
-
-            // Restore sidebar state from localStorage
-            const savedState = localStorage.getItem('nova_x_sidebar_collapsed');
-            if (savedState === '1') {
-                $sidebar.addClass('collapsed');
-                $toggleBtn.find('.dashicons').removeClass('dashicons-arrow-left-alt2').addClass('dashicons-arrow-right-alt2');
-            }
+            // Sidebar toggle is handled by vanilla JS (see bottom of file)
+            // This ensures it works with the correct button ID: #novaX_sidebar_toggle
 
             // Sync with top nav tabs (if clicked)
             $topNavTabs.on('click', function(e) {
@@ -1379,113 +1358,8 @@
             }
         },
 
-        /**
-         * Initialize theme toggle
-         */
-        initThemeToggle: function () {
-            const $themeToggle = $('#nova-x-theme-toggle');
-            const $dashboardWrap = $('.nova-x-dashboard-wrap');
-            const $headerBar = $('.nova-x-header-bar');
-            const $themeIconLight = $('#nova-x-theme-icon');
-            const $themeIconDark = $('#nova-x-theme-icon-dark');
-
-            if (!$themeToggle.length || !$dashboardWrap.length) {
-                return;
-            }
-
-            // Get saved theme preference or use system preference
-            const getSystemTheme = function () {
-                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-                    return 'light';
-                }
-                return 'dark';
-            };
-
-            const savedTheme = localStorage.getItem('nova_x_theme_preference');
-            const initialTheme = savedTheme || getSystemTheme();
-            
-            // Apply initial theme
-            $dashboardWrap.attr('data-theme', initialTheme);
-            if ($headerBar.length) {
-                $headerBar.attr('data-theme', initialTheme);
-            }
-            document.documentElement.setAttribute('data-theme', initialTheme);
-            
-            // Update icon visibility
-            this.updateThemeIcon($themeIconLight, $themeIconDark, initialTheme);
-
-            // Handle theme toggle click
-            $themeToggle.on('click', function () {
-                const currentTheme = $dashboardWrap.attr('data-theme') || 'dark';
-                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-                
-                // Apply new theme instantly
-                $dashboardWrap.attr('data-theme', newTheme);
-                if ($headerBar.length) {
-                    $headerBar.attr('data-theme', newTheme);
-                }
-                document.documentElement.setAttribute('data-theme', newTheme);
-                
-                // Save preference
-                localStorage.setItem('nova_x_theme_preference', newTheme);
-                
-                // Update icon visibility
-                NovaXDashboard.updateThemeIcon($themeIconLight, $themeIconDark, newTheme);
-                
-                // Save to user meta via AJAX (optional, for persistence across devices)
-                if (typeof novaXDashboard !== 'undefined' && novaXDashboard.restUrl) {
-                    $.ajax({
-                        method: 'POST',
-                        url: novaXDashboard.restUrl + 'update-theme-preference',
-                        contentType: 'application/json',
-                        beforeSend: function(xhr) {
-                            xhr.setRequestHeader('X-WP-Nonce', novaXDashboard.nonce);
-                        },
-                        data: JSON.stringify({
-                            theme: newTheme,
-                            nonce: novaXDashboard.generateNonce || novaXDashboard.nonce,
-                        }),
-                        timeout: 5000,
-                    }).fail(function() {
-                        // Silently fail - localStorage is sufficient
-                    });
-                }
-            });
-
-            // Listen for system theme changes (optional)
-            if (window.matchMedia) {
-                const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
-                mediaQuery.addEventListener('change', function (e) {
-                    // Only apply if user hasn't set a preference
-                    if (!localStorage.getItem('nova_x_theme_preference')) {
-                        const systemTheme = e.matches ? 'light' : 'dark';
-                        $dashboardWrap.attr('data-theme', systemTheme);
-                        if ($headerBar.length) {
-                            $headerBar.attr('data-theme', systemTheme);
-                        }
-                        document.documentElement.setAttribute('data-theme', systemTheme);
-                        NovaXDashboard.updateThemeIcon($themeIconLight, $themeIconDark, systemTheme);
-                    }
-                });
-            }
-        },
-
-        /**
-         * Update theme icon visibility based on current theme
-         * 
-         * @param {jQuery} $lightIcon Light theme icon element
-         * @param {jQuery} $darkIcon Dark theme icon element
-         * @param {string} theme Current theme (light/dark)
-         */
-        updateThemeIcon: function ($lightIcon, $darkIcon, theme) {
-            if (theme === 'light') {
-                if ($lightIcon.length) $lightIcon.show();
-                if ($darkIcon.length) $darkIcon.hide();
-            } else {
-                if ($lightIcon.length) $lightIcon.hide();
-                if ($darkIcon.length) $darkIcon.show();
-            }
-        },
+        // Theme toggle functionality has been moved to theme-toggle.js
+        // This ensures consistent behavior across all Nova-X pages
 
         /**
          * Initialize notice dismiss functionality
@@ -1505,30 +1379,42 @@
          * Initialize header overlay positioning
          */
         initHeaderOverlay: function () {
-            const $headerOverlay = $('.nova-x-header-overlay');
+            const $headerOverlay = $('.nova-x-dashboard-layout .nova-x-header-overlay');
             if (!$headerOverlay.length) {
                 return;
             }
 
             // Function to update header position based on sidebar state
             const updateHeaderPosition = function() {
-                const $body = $('body');
-                const isFolded = $body.hasClass('folded');
+                const $sidebar = $('.nova-x-dashboard-layout .nova-x-sidebar');
+                const isCollapsed = $sidebar.hasClass('collapsed');
                 
-                if (isFolded) {
-                    $headerOverlay.css('left', '36px');
+                if (isCollapsed) {
+                    $headerOverlay.css('left', '60px'); // Collapsed sidebar width
                 } else {
-                    $headerOverlay.css('left', '160px');
+                    $headerOverlay.css('left', '240px'); // Expanded sidebar width
                 }
             };
 
             // Initial position
             updateHeaderPosition();
 
-            // Watch for sidebar toggle
-            $(document).on('wp-collapse-menu', function() {
-                setTimeout(updateHeaderPosition, 300); // Wait for animation
+            // Watch for sidebar toggle - listen for class changes on sidebar
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        setTimeout(updateHeaderPosition, 50); // Small delay to ensure class is applied
+                    }
+                });
             });
+
+            const $sidebar = $('.nova-x-dashboard-layout .nova-x-sidebar');
+            if ($sidebar.length) {
+                observer.observe($sidebar[0], {
+                    attributes: true,
+                    attributeFilter: ['class']
+                });
+            }
 
             // Also watch for window resize (responsive)
             $(window).on('resize', function() {
@@ -1545,4 +1431,39 @@
     });
 
 })(jQuery);
+
+// Vanilla JS toggle button implementation
+document.addEventListener("DOMContentLoaded", function () {
+    const toggleBtn = document.getElementById("novaX_sidebar_toggle");
+    const sidebar = document.querySelector(".nova-x-dashboard-layout .nova-x-sidebar");
+    const headerOverlay = document.querySelector(".nova-x-dashboard-layout .nova-x-header-overlay");
+    
+    // Function to update header overlay position
+    const updateHeaderPosition = function() {
+        if (headerOverlay && sidebar) {
+            const isCollapsed = sidebar.classList.contains("collapsed");
+            // Use requestAnimationFrame for smooth transitions
+            requestAnimationFrame(() => {
+                headerOverlay.style.left = isCollapsed ? "60px" : "240px";
+            });
+        }
+    };
+    
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener("click", () => {
+            sidebar.classList.toggle("collapsed");
+            localStorage.setItem("novaX_sidebar_state", sidebar.classList.contains("collapsed") ? "collapsed" : "expanded");
+            // Update header position with slight delay to ensure class is applied
+            setTimeout(updateHeaderPosition, 10);
+        });
+
+        // Restore state on load
+        const savedState = localStorage.getItem("novaX_sidebar_state");
+        if (savedState === "collapsed") {
+            sidebar.classList.add("collapsed");
+        }
+        // Update header position on initial load
+        setTimeout(updateHeaderPosition, 100);
+    }
+});
 
