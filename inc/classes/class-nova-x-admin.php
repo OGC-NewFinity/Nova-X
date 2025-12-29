@@ -286,18 +286,109 @@ class Nova_X_Admin {
 
         $dashboard_url = admin_url( 'admin.php?page=nova-x-dashboard' );
         
+        // Get theme preference (default to dark)
+        $theme = get_user_meta( get_current_user_id(), 'nova_x_theme_preference', true );
+        if ( empty( $theme ) ) {
+            $theme = 'dark'; // Default to dark theme
+        }
+        
+        // Logo URL
+        $logo_url = plugin_dir_url( NOVA_X_PLUGIN_FILE ) . 'assets/images/logo/nova-x-logo-crystal-primary.png';
+        
         // Load sidebar navigation
         $sidebar_path = NOVA_X_PATH . 'admin/partials/dashboard/sidebar-navigation.php';
         ?>
-        <div class="wrap nova-x-dashboard-wrap">
+        <div class="wrap nova-x-dashboard-wrap" data-theme="<?php echo esc_attr( $theme ); ?>">
+            <div id="nova-x-wrapper" class="nova-x-wrapper">
             <div class="nova-x-dashboard-layout">
                 <?php if ( file_exists( $sidebar_path ) ) : ?>
                     <?php include $sidebar_path; ?>
                 <?php endif; ?>
                 
-                <div class="nova-x-dashboard-main" id="nova-x-dashboard-main">
+                <div class="nova-x-dashboard-main nova-x-main" id="nova-x-dashboard-main">
                     <div class="nova-x-dashboard-header">
-                        <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+                        <a href="<?php echo esc_url( $dashboard_url ); ?>" class="nova-x-header-logo-link" aria-label="Nova-X Dashboard">
+                            <img src="<?php echo esc_url( $logo_url ); ?>" alt="Nova-X" class="nova-x-header-logo" />
+                        </a>
+                        
+                        <div class="header-controls">
+                            <!-- Account Dropdown -->
+                            <div class="nova-x-header-control nova-x-account-dropdown">
+                                <button type="button" class="icon-button" id="nova-x-account-btn" aria-label="Account Menu" aria-expanded="false">
+                                    👤
+                                </button>
+                                <div class="nova-x-dropdown-menu" id="nova-x-account-menu">
+                                    <a href="#" class="nova-x-dropdown-item">
+                                        <span class="dashicons dashicons-admin-users"></span>
+                                        <span>Profile</span>
+                                    </a>
+                                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=nova-x-settings' ) ); ?>" class="nova-x-dropdown-item">
+                                        <span class="dashicons dashicons-admin-settings"></span>
+                                        <span>Settings</span>
+                                    </a>
+                                    <a href="<?php echo esc_url( wp_logout_url() ); ?>" class="nova-x-dropdown-item">
+                                        <span class="dashicons dashicons-migrate"></span>
+                                        <span>Sign out</span>
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <!-- Notifications Dropdown -->
+                            <div class="nova-x-header-control nova-x-notifications-dropdown">
+                                <button type="button" class="icon-button" id="nova-x-notifications-btn" aria-label="Notifications" aria-expanded="false">
+                                    🔔
+                                    <span class="nova-x-badge" id="nova-x-notifications-badge">3</span>
+                                </button>
+                                <div class="nova-x-dropdown-menu" id="nova-x-notifications-menu">
+                                    <div class="nova-x-dropdown-header">
+                                        <h3>Notifications</h3>
+                                    </div>
+                                    <div class="nova-x-dropdown-content">
+                                        <a href="#" class="nova-x-notification-item">
+                                            <div class="nova-x-notification-icon">
+                                                <span class="dashicons dashicons-yes-alt"></span>
+                                            </div>
+                                            <div class="nova-x-notification-content">
+                                                <div class="nova-x-notification-title">Theme generated successfully</div>
+                                                <div class="nova-x-notification-time">2 minutes ago</div>
+                                            </div>
+                                        </a>
+                                        <a href="#" class="nova-x-notification-item">
+                                            <div class="nova-x-notification-icon">
+                                                <span class="dashicons dashicons-info"></span>
+                                            </div>
+                                            <div class="nova-x-notification-content">
+                                                <div class="nova-x-notification-title">New feature available</div>
+                                                <div class="nova-x-notification-time">1 hour ago</div>
+                                            </div>
+                                        </a>
+                                        <a href="#" class="nova-x-notification-item">
+                                            <div class="nova-x-notification-icon">
+                                                <span class="dashicons dashicons-update"></span>
+                                            </div>
+                                            <div class="nova-x-notification-content">
+                                                <div class="nova-x-notification-title">System update available</div>
+                                                <div class="nova-x-notification-time">3 hours ago</div>
+                                            </div>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Theme Toggle -->
+                            <div class="nova-x-header-control">
+                                <button type="button" class="icon-button" id="nova-x-theme-toggle" aria-label="Toggle Theme">
+                                    🌗
+                                </button>
+                            </div>
+                            
+                            <!-- Upgrade Button -->
+                            <div class="nova-x-header-control">
+                                <a href="#" class="upgrade-button" id="nova-x-upgrade-link">
+                                    🚀 Upgrade
+                                </a>
+                            </div>
+                        </div>
                         
                         <!-- Keep top nav tabs for backward compatibility and mobile -->
                         <nav class="nav-tab-wrapper nova-x-tab-wrapper nova-x-top-nav">
@@ -342,6 +433,7 @@ class Nova_X_Admin {
                         ?>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
         <?php

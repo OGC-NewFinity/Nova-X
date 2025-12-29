@@ -22,7 +22,7 @@ if ( ! current_user_can( 'manage_options' ) ) {
     <div class="nova-x-usage-widgets">
         <div class="nova-x-widget">
             <div class="nova-x-widget-icon">
-                <span class="dashicons dashicons-chart-line" style="font-size: 32px; width: 32px; height: 32px; color: #2271b1;"></span>
+                <span class="dashicons dashicons-chart-line nova-x-icon-primary" style="font-size: 32px; width: 32px; height: 32px;"></span>
             </div>
             <h3><?php esc_html_e( 'Total Tokens Used', 'nova-x' ); ?></h3>
             <p class="nova-x-stat-large" id="nova-x-total-tokens">0</p>
@@ -30,7 +30,7 @@ if ( ! current_user_can( 'manage_options' ) ) {
         
         <div class="nova-x-widget">
             <div class="nova-x-widget-icon">
-                <span class="dashicons dashicons-money-alt" style="font-size: 32px; width: 32px; height: 32px; color: #00a32a;"></span>
+                <span class="dashicons dashicons-money-alt nova-x-icon-secondary" style="font-size: 32px; width: 32px; height: 32px;"></span>
             </div>
             <h3><?php esc_html_e( 'Total Estimated Cost', 'nova-x' ); ?></h3>
             <p class="nova-x-stat-large" id="nova-x-total-cost">$0.00 USD</p>
@@ -54,7 +54,7 @@ if ( ! current_user_can( 'manage_options' ) ) {
             </thead>
             <tbody id="nova-x-provider-tbody">
                 <tr>
-                    <td colspan="4" style="text-align: center; padding: 20px; color: #999;">
+                    <td colspan="4" style="text-align: center; padding: 20px;" class="nova-x-loading-text">
                         <span class="nova-x-loading-text"><?php esc_html_e( 'Loading usage statistics...', 'nova-x' ); ?></span>
                     </td>
                 </tr>

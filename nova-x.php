@@ -16,6 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Define Constants
 define( 'NOVA_X_VERSION', '0.1.0' );
+define( 'NOVA_X_PLUGIN_FILE', __FILE__ );
 define( 'NOVA_X_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NOVA_X_URL', plugin_dir_url( __FILE__ ) );
 define( 'NOVA_X_SUPPORTED_PROVIDERS', [ 'openai', 'anthropic', 'groq', 'mistral', 'gemini', 'claude', 'cohere' ] );

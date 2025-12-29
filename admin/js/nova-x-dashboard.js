@@ -25,6 +25,8 @@
             this.handleCustomizeOutput();
             this.handleUsageStats();
             this.handleExportedThemes();
+            this.initHeaderControls();
+            this.initThemeToggle();
         },
 
         /**
@@ -838,7 +840,7 @@
 
             // Show loader
             $loader.removeClass('nova-x-hidden');
-            $tbody.html('<tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;"><span class="nova-x-loading-text">Loading usage statistics...</span></td></tr>');
+            $tbody.html('<tr><td colspan="4" style="text-align: center; padding: 20px;" class="nova-x-loading-text"><span class="nova-x-loading-text">Loading usage statistics...</span></td></tr>');
 
             // Fetch stats
             $.ajax({
@@ -879,15 +881,15 @@
                             });
 
                             if (!hasData) {
-                                tableHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;">No usage data yet. Generate a theme to see statistics.</td></tr>';
+                                tableHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;" class="nova-x-loading-text">No usage data yet. Generate a theme to see statistics.</td></tr>';
                             }
 
                             $tbody.html(tableHTML);
                         } else {
-                            $tbody.html('<tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;">No usage data yet. Generate a theme to see statistics.</td></tr>');
+                            $tbody.html('<tr><td colspan="4" style="text-align: center; padding: 20px;" class="nova-x-loading-text">No usage data yet. Generate a theme to see statistics.</td></tr>');
                         }
                     } else {
-                        $tbody.html('<tr><td colspan="4" style="text-align: center; padding: 20px; color: #d63638;">Failed to load usage statistics.</td></tr>');
+                        $tbody.html('<tr><td colspan="4" style="text-align: center; padding: 20px;" class="nova-x-icon-error">Failed to load usage statistics.</td></tr>');
                     }
                 })
                 .fail(function (xhr) {
@@ -895,7 +897,7 @@
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
                     }
-                    $tbody.html('<tr><td colspan="4" style="text-align: center; padding: 20px; color: #d63638;">' + errorMessage + '</td></tr>');
+                    $tbody.html('<tr><td colspan="4" style="text-align: center; padding: 20px;" class="nova-x-icon-error">' + errorMessage + '</td></tr>');
                 })
                 .always(function () {
                     $loader.addClass('nova-x-hidden');
@@ -963,7 +965,7 @@
             $loader.removeClass('nova-x-hidden');
             $empty.addClass('nova-x-hidden');
             $tableWrapper.removeClass('nova-x-hidden');
-            $tbody.html('<tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;"><span class="nova-x-loading-text">Loading exported themes...</span></td></tr>');
+            $tbody.html('<tr><td colspan="4" style="text-align: center; padding: 20px;" class="nova-x-loading-text"><span class="nova-x-loading-text">Loading exported themes...</span></td></tr>');
 
             // Fetch themes
             $.ajax({
@@ -1015,7 +1017,7 @@
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
                     }
-                    $tbody.html('<tr><td colspan="4" style="text-align: center; padding: 20px; color: #d63638;">' + errorMessage + '</td></tr>');
+                    $tbody.html('<tr><td colspan="4" style="text-align: center; padding: 20px;" class="nova-x-icon-error">' + errorMessage + '</td></tr>');
                 })
                 .always(function () {
                     $loader.addClass('nova-x-hidden');
@@ -1193,6 +1195,165 @@
             $element.removeClass('loading success error')
                 .addClass(type)
                 .html(message);
+        },
+
+        /**
+         * Initialize header controls (account, notifications dropdowns)
+         */
+        initHeaderControls: function () {
+            const $accountBtn = $('#nova-x-account-btn');
+            const $accountMenu = $('#nova-x-account-menu');
+            const $notificationsBtn = $('#nova-x-notifications-btn');
+            const $notificationsMenu = $('#nova-x-notifications-menu');
+            const $upgradeLink = $('#nova-x-upgrade-link');
+            const $headerControls = $('.header-controls');
+
+            // Account dropdown
+            if ($accountBtn.length && $accountMenu.length) {
+                $accountBtn.on('click', function (e) {
+                    e.stopPropagation();
+                    const isActive = $accountMenu.hasClass('active');
+                    
+                    // Close all other dropdowns
+                    $notificationsMenu.removeClass('active');
+                    $notificationsBtn.attr('aria-expanded', 'false');
+                    
+                    // Toggle account menu
+                    if (isActive) {
+                        $accountMenu.removeClass('active');
+                        $accountBtn.attr('aria-expanded', 'false');
+                    } else {
+                        $accountMenu.addClass('active');
+                        $accountBtn.attr('aria-expanded', 'true');
+                    }
+                });
+            }
+
+            // Notifications dropdown
+            if ($notificationsBtn.length && $notificationsMenu.length) {
+                $notificationsBtn.on('click', function (e) {
+                    e.stopPropagation();
+                    const isActive = $notificationsMenu.hasClass('active');
+                    
+                    // Close all other dropdowns
+                    $accountMenu.removeClass('active');
+                    $accountBtn.attr('aria-expanded', 'false');
+                    
+                    // Toggle notifications menu
+                    if (isActive) {
+                        $notificationsMenu.removeClass('active');
+                        $notificationsBtn.attr('aria-expanded', 'false');
+                    } else {
+                        $notificationsMenu.addClass('active');
+                        $notificationsBtn.attr('aria-expanded', 'true');
+                    }
+                });
+            }
+
+            // Close dropdowns on outside click
+            $(document).on('click', function (e) {
+                if (!$(e.target).closest('.header-controls').length) {
+                    $accountMenu.removeClass('active');
+                    $accountBtn.attr('aria-expanded', 'false');
+                    $notificationsMenu.removeClass('active');
+                    $notificationsBtn.attr('aria-expanded', 'false');
+                }
+            });
+
+            // Close dropdowns on Escape key
+            $(document).on('keydown', function (e) {
+                if (e.key === 'Escape' || e.keyCode === 27) {
+                    $accountMenu.removeClass('active');
+                    $accountBtn.attr('aria-expanded', 'false');
+                    $notificationsMenu.removeClass('active');
+                    $notificationsBtn.attr('aria-expanded', 'false');
+                }
+            });
+
+            // Upgrade button (placeholder - can be customized)
+            if ($upgradeLink.length) {
+                $upgradeLink.on('click', function (e) {
+                    // Placeholder: can open modal or navigate to upgrade page
+                    // For now, prevent default and show alert
+                    e.preventDefault();
+                    // Uncomment to open upgrade page:
+                    // window.location.href = 'https://example.com/upgrade';
+                    // Or trigger modal:
+                    // NovaXDashboard.openUpgradeModal();
+                });
+            }
+        },
+
+        /**
+         * Initialize theme toggle
+         */
+        initThemeToggle: function () {
+            const $themeToggle = $('#nova-x-theme-toggle');
+            const $dashboardWrap = $('.nova-x-dashboard-wrap');
+
+            if (!$themeToggle.length || !$dashboardWrap.length) {
+                return;
+            }
+
+            // Get saved theme preference or use system preference
+            const getSystemTheme = function () {
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                    return 'light';
+                }
+                return 'dark';
+            };
+
+            const savedTheme = localStorage.getItem('nova_x_theme_preference');
+            const initialTheme = savedTheme || getSystemTheme();
+            
+            // Apply initial theme
+            $dashboardWrap.attr('data-theme', initialTheme);
+            document.documentElement.setAttribute('data-theme', initialTheme);
+
+            // Handle theme toggle click
+            $themeToggle.on('click', function () {
+                const currentTheme = $dashboardWrap.attr('data-theme') || 'dark';
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                
+                // Apply new theme instantly
+                $dashboardWrap.attr('data-theme', newTheme);
+                document.documentElement.setAttribute('data-theme', newTheme);
+                
+                // Save preference
+                localStorage.setItem('nova_x_theme_preference', newTheme);
+                
+                // Save to user meta via AJAX (optional, for persistence across devices)
+                if (typeof novaXDashboard !== 'undefined' && novaXDashboard.restUrl) {
+                    $.ajax({
+                        method: 'POST',
+                        url: novaXDashboard.restUrl + 'update-theme-preference',
+                        contentType: 'application/json',
+                        beforeSend: function(xhr) {
+                            xhr.setRequestHeader('X-WP-Nonce', novaXDashboard.nonce);
+                        },
+                        data: JSON.stringify({
+                            theme: newTheme,
+                            nonce: novaXDashboard.generateNonce || novaXDashboard.nonce,
+                        }),
+                        timeout: 5000,
+                    }).fail(function() {
+                        // Silently fail - localStorage is sufficient
+                    });
+                }
+            });
+
+            // Listen for system theme changes (optional)
+            if (window.matchMedia) {
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+                mediaQuery.addEventListener('change', function (e) {
+                    // Only apply if user hasn't set a preference
+                    if (!localStorage.getItem('nova_x_theme_preference')) {
+                        const systemTheme = e.matches ? 'light' : 'dark';
+                        $dashboardWrap.attr('data-theme', systemTheme);
+                        document.documentElement.setAttribute('data-theme', systemTheme);
+                    }
+                });
+            }
         }
     };
 

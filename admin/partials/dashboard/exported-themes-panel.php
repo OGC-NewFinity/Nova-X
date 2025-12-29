@@ -30,7 +30,7 @@ if ( ! current_user_can( 'manage_options' ) ) {
     <!-- Empty State -->
     <div class="nova-x-exported-themes-empty nova-x-hidden" id="nova-x-exported-themes-empty">
         <div class="nova-x-empty-icon">
-            <span class="dashicons dashicons-archive" style="font-size: 64px; width: 64px; height: 64px; color: #646970;"></span>
+            <span class="dashicons dashicons-archive nova-x-icon-text" style="font-size: 64px; width: 64px; height: 64px;"></span>
         </div>
         <h3><?php esc_html_e( 'No Exported Themes', 'nova-x' ); ?></h3>
         <p><?php esc_html_e( 'You haven\'t exported any themes yet. Generate and export a theme to see it here.', 'nova-x' ); ?></p>
@@ -49,7 +49,7 @@ if ( ! current_user_can( 'manage_options' ) ) {
             </thead>
             <tbody id="nova-x-exported-themes-tbody">
                 <tr>
-                    <td colspan="4" style="text-align: center; padding: 20px; color: #999;">
+                    <td colspan="4" style="text-align: center; padding: 20px;" class="nova-x-loading-text">
                         <span class="nova-x-loading-text"><?php esc_html_e( 'Loading exported themes...', 'nova-x' ); ?></span>
                     </td>
                 </tr>

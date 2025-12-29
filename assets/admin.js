@@ -1,3 +1,15 @@
+// Toggle only the Nova-X sidebar, not WordPress admin menu
+document.addEventListener('DOMContentLoaded', function () {
+  const wrapper = document.querySelector('.nova-x-wrapper');
+  const toggle = document.getElementById('nova-x-sidebar-toggle');
+
+  if (toggle && wrapper) {
+    toggle.addEventListener('click', function () {
+      wrapper.classList.toggle('collapsed');
+    });
+  }
+});
+
 jQuery(document).ready(function ($) {
     const $button = $('#nova_x_generate_theme');
     const $status = $('#nova_x_response');

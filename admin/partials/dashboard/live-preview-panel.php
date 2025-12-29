@@ -22,7 +22,7 @@ if ( ! current_user_can( 'manage_options' ) ) {
         <!-- Placeholder when no preview is available -->
         <div id="nova-x-preview-placeholder" class="nova-x-preview-placeholder">
             <div class="nova-x-preview-icon">
-                <span class="dashicons dashicons-visibility" style="font-size: 64px; width: 64px; height: 64px; color: #646970;"></span>
+                <span class="dashicons dashicons-visibility nova-x-icon-text" style="font-size: 64px; width: 64px; height: 64px;"></span>
             </div>
             <h3><?php esc_html_e( 'No Preview Available', 'nova-x' ); ?></h3>
             <p><?php esc_html_e( 'Generate a theme to enable preview.', 'nova-x' ); ?></p>
@@ -56,7 +56,7 @@ if ( ! current_user_can( 'manage_options' ) ) {
             ></iframe>
             <div id="nova-x-preview-error" class="nova-x-preview-error nova-x-hidden">
                 <p>
-                    <span class="dashicons dashicons-warning" style="color: #d63638; vertical-align: middle;"></span>
+                    <span class="dashicons dashicons-warning nova-x-icon-error" style="vertical-align: middle;"></span>
                     <strong><?php esc_html_e( 'Preview failed to load.', 'nova-x' ); ?></strong>
                     <?php esc_html_e( 'Please check that the theme is properly installed and try again.', 'nova-x' ); ?>
                 </p>

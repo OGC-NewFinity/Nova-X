@@ -43,19 +43,9 @@ $nav_items = [
 ?>
 
 <aside class="nova-x-sidebar" id="nova-x-sidebar">
-    <!-- Sidebar Header with Logo and Toggle Icon -->
-    <div class="nova-x-sidebar-header" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px;">
-        <img
-            src="<?php echo esc_url( plugins_url( 'assets/images/logo/nova-x-logo-crystal-primary.png', dirname(__FILE__, 3) ) ); ?>"
-            alt="Nova-X Logo"
-            class="nova-x-logo"
-            style="height: 36px; width: auto;"
-        />
-
-        <!-- Toggle Sidebar Button -->
-        <button class="nova-x-sidebar-toggle" style="background: none; border: none; cursor: pointer;" onclick="document.body.classList.toggle('folded');">
-            <span class="dashicons dashicons-arrow-left-alt2"></span>
-        </button>
+    <!-- Nova-X Sidebar Header -->
+    <div class="nova-x-sidebar-header">
+      <button id="nova-x-sidebar-toggle" class="nova-x-sidebar-toggle dashicons dashicons-menu" type="button" aria-label="Toggle Sidebar"></button>
     </div>
     
     <nav class="nova-x-sidebar-nav" id="nova-x-sidebar-nav">
