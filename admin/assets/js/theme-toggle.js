@@ -2,6 +2,7 @@
  * Nova-X Global Theme Toggle
  * 
  * Handles light/dark mode switching across all plugin pages
+ * Syncs with user meta via REST API for cross-device persistence
  * 
  * @package Nova-X
  */
@@ -10,264 +11,178 @@
     'use strict';
 
     /**
-     * Global Theme Toggle Manager
-     * Pure vanilla JavaScript implementation
+     * Apply theme to document
+     * @param {string} theme Theme to apply ('light' or 'dark')
      */
-    const NovaXThemeToggle = {
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
         
-        /**
-         * Initialize theme toggle on page load
-         */
-        init: function() {
-            this.applyInitialTheme();
-            this.bindToggleEvents();
-            this.watchSystemPreference();
-        },
-
-        /**
-         * Get system theme preference
-         * @returns {string} 'light' or 'dark'
-         */
-        getSystemTheme: function() {
-            if (window.matchMedia) {
-                // Check for dark mode preference first
-                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    return 'dark';
+        // Also apply to body and Nova-X containers for compatibility
+        if (document.body) {
+            document.body.setAttribute('data-theme', theme);
+        }
+        
+        const selectors = [
+            '.nova-x-wrapper',
+            '.nova-x-dashboard-wrap',
+            '.nova-x-header-overlay',
+            '.nova-x-header-bar'
+        ];
+        
+        selectors.forEach(function(selector) {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(function(element) {
+                if (element) {
+                    element.setAttribute('data-theme', theme);
                 }
-                // Then check for light mode preference
-                if (window.matchMedia('(prefers-color-scheme: light)').matches) {
-                    return 'light';
-                }
-            }
-            // Default fallback
-            return 'dark';
-        },
-
-        /**
-         * Apply initial theme based on saved preference, PHP default, or system preference
-         */
-        applyInitialTheme: function() {
-            // Priority: localStorage > PHP default > system preference
-            const savedTheme = localStorage.getItem('nova_x_theme_preference');
-            let initialTheme = savedTheme;
-            
-            // If no saved preference, check PHP default (from wp_localize_script)
-            if (!initialTheme && typeof novaXTheme !== 'undefined' && novaXTheme.defaultTheme) {
-                initialTheme = novaXTheme.defaultTheme;
-                // Store PHP default in localStorage for consistency
-                localStorage.setItem('nova_x_theme_preference', initialTheme);
-            }
-            
-            // Fallback to system preference if still no theme
-            if (!initialTheme) {
-                initialTheme = this.getSystemTheme();
-                // Store system preference in localStorage
-                localStorage.setItem('nova_x_theme_preference', initialTheme);
-            }
-            
-            this.setTheme(initialTheme, false);
-        },
-
-        /**
-         * Set theme across all elements
-         * @param {string} theme Theme to apply ('light' or 'dark')
-         * @param {boolean} save Whether to save to localStorage
-         */
-        setTheme: function(theme, save = true) {
-            // Validate theme value
-            if (theme !== 'light' && theme !== 'dark') {
-                console.warn('Nova-X: Invalid theme value:', theme);
-                return;
-            }
-            
-            // Apply to document root (html element)
-            if (document.documentElement) {
-                document.documentElement.setAttribute('data-theme', theme);
-            }
-            
-            // Apply to body
-            if (document.body) {
-                document.body.setAttribute('data-theme', theme);
-            }
-            
-            // Apply to all Nova-X containers using native DOM with null checks
-            const selectors = [
-                '.nova-x-wrapper',
-                '.nova-x-dashboard-wrap',
-                '.nova-x-header-overlay',
-                '.nova-x-header-bar'
-            ];
-            
-            selectors.forEach(function(selector) {
-                const elements = document.querySelectorAll(selector);
-                elements.forEach(function(element) {
-                    if (element) {
-                        element.setAttribute('data-theme', theme);
-                    }
-                });
             });
-            
-            // Update icon visibility
-            this.updateThemeIcon(theme);
-            
-            // Save preference if requested
-            if (save) {
-                localStorage.setItem('nova_x_theme_preference', theme);
-                
-                // Optionally save to user meta via AJAX (for cross-device persistence)
-                this.saveThemePreferenceToServer(theme);
-            }
-        },
+        });
         
-        /**
-         * Save theme preference to server via AJAX (optional)
-         * @param {string} theme Theme to save
-         */
-        saveThemePreferenceToServer: function(theme) {
-            // Check if REST API is available
-            const restUrl = (typeof novaXDashboard !== 'undefined' && novaXDashboard.restUrl) 
-                ? novaXDashboard.restUrl 
-                : (typeof novaXTheme !== 'undefined' && novaXTheme.restUrl)
-                    ? novaXTheme.restUrl
-                    : null;
-            
-            if (!restUrl) {
-                return; // No REST API available
+        // Update icon visibility
+        updateThemeIcon(theme);
+    }
+
+    /**
+     * Update theme toggle icon based on current theme
+     * @param {string} theme Current theme
+     */
+    function updateThemeIcon(theme) {
+        const lightIcon = document.getElementById('nova-x-theme-icon-light');
+        const darkIcon = document.getElementById('nova-x-theme-icon-dark');
+        
+        if (!lightIcon || !darkIcon) {
+            return;
+        }
+        
+        if (theme === 'light') {
+            lightIcon.style.display = 'block';
+            darkIcon.style.display = 'none';
+        } else {
+            lightIcon.style.display = 'none';
+            darkIcon.style.display = 'block';
+        }
+    }
+
+    /**
+     * Load user theme preference from REST API if localStorage is missing
+     * Prevents flicker by applying default theme first, then updating from REST API
+     */
+    async function loadUserThemePreference() {
+        const local = localStorage.getItem('nova_x_theme');
+        if (local) {
+            applyTheme(local);
+            return;
+        }
+
+        // Apply default theme immediately to prevent flicker
+        applyTheme('dark');
+
+        // Check if REST API data is available
+        if (typeof NovaXTheme === 'undefined' || !NovaXTheme.restUrl) {
+            return;
+        }
+
+        try {
+            const res = await fetch(NovaXTheme.restUrl, {
+                headers: {
+                    'X-WP-Nonce': NovaXTheme.nonce
+                }
+            });
+            const data = await res.json();
+            if (data && data.theme) {
+                localStorage.setItem('nova_x_theme', data.theme);
+                // Only update if different from default
+                if (data.theme !== 'dark') {
+                    applyTheme(data.theme);
+                }
             }
-            
-            const nonce = (typeof novaXDashboard !== 'undefined' && novaXDashboard.nonce)
-                ? novaXDashboard.nonce
-                : (typeof novaXTheme !== 'undefined' && novaXTheme.nonce)
-                    ? novaXTheme.nonce
-                    : '';
-            
-            // Use fetch API (vanilla JS)
-            fetch(restUrl + 'update-theme-preference', {
+        } catch (e) {
+            console.warn('Failed to load theme preference:', e);
+        }
+    }
+
+    /**
+     * Toggle theme and save to both localStorage and REST API
+     */
+    async function toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        applyTheme(current);
+        localStorage.setItem('nova_x_theme', current);
+
+        // Check if REST API data is available
+        if (typeof NovaXTheme === 'undefined' || !NovaXTheme.restUrl) {
+            return;
+        }
+
+        try {
+            await fetch(NovaXTheme.restUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-WP-Nonce': nonce,
+                    'X-WP-Nonce': NovaXTheme.nonce
                 },
-                body: JSON.stringify({
-                    theme: theme,
-                    nonce: nonce,
-                }),
-            }).catch(function() {
-                // Silently fail - localStorage is sufficient
+                body: JSON.stringify({ theme: current })
             });
-        },
+        } catch (e) {
+            console.warn('Failed to save theme preference:', e);
+        }
+    }
 
-        /**
-         * Update theme toggle icon based on current theme
-         * @param {string} theme Current theme
-         */
-        updateThemeIcon: function(theme) {
-            // Use getElementById for reliable element selection
-            const lightIcon = document.getElementById('nova-x-theme-icon-light');
-            const darkIcon = document.getElementById('nova-x-theme-icon-dark');
-            
-            // Null checks before manipulating
-            if (!lightIcon || !darkIcon) {
-                return; // Icons not found, skip update
+    /**
+     * Watch for system theme preference changes
+     */
+    function watchSystemPreference() {
+        if (!window.matchMedia) {
+            return;
+        }
+        
+        const darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        const handleChange = function() {
+            // Only apply if user hasn't set a preference
+            if (!localStorage.getItem('nova_x_theme')) {
+                const systemTheme = darkMediaQuery.matches ? 'dark' : 'light';
+                applyTheme(systemTheme);
             }
-            
-            // Toggle icon visibility based on theme
-            if (theme === 'light') {
-                lightIcon.style.display = 'block';
-                darkIcon.style.display = 'none';
-            } else {
-                lightIcon.style.display = 'none';
-                darkIcon.style.display = 'block';
-            }
-        },
+        };
+        
+        if (darkMediaQuery.addEventListener) {
+            darkMediaQuery.addEventListener('change', handleChange);
+        } else if (darkMediaQuery.addListener) {
+            darkMediaQuery.addListener(handleChange);
+        }
+    }
 
-        /**
-         * Get current theme
-         * @returns {string} Current theme
-         */
-        getCurrentTheme: function() {
-            return document.documentElement.getAttribute('data-theme') || 
-                   localStorage.getItem('nova_x_theme_preference') || 
-                   this.getSystemTheme();
-        },
-
-        /**
-         * Toggle between light and dark themes
-         */
-        toggleTheme: function() {
-            const currentTheme = this.getCurrentTheme();
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            this.setTheme(newTheme, true);
-        },
-
-        /**
-         * Bind click events to theme toggle buttons
-         */
-        bindToggleEvents: function() {
-            const self = this;
-            
-            // Check if toggle button exists
-            const toggleButton = document.getElementById('nova-x-theme-toggle');
-            if (!toggleButton) {
-                console.warn('Nova-X: Theme toggle button not found');
-                return;
-            }
-            
-            // Use native event listener for reliability
+    /**
+     * Bind click events to theme toggle buttons
+     */
+    function bindToggleEvents() {
+        const toggleButton = document.getElementById('nova-x-theme-toggle');
+        if (toggleButton) {
             toggleButton.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                self.toggleTheme();
+                toggleTheme();
             });
-            
-            // Also bind to data-theme-toggle attribute for flexibility
-            const toggleButtons = document.querySelectorAll('[data-theme-toggle]');
-            toggleButtons.forEach(function(btn) {
-                if (btn !== toggleButton) {
-                    btn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        self.toggleTheme();
-                    });
-                }
-            });
-        },
-
-        /**
-         * Watch for system theme preference changes
-         */
-        watchSystemPreference: function() {
-            const self = this;
-            
-            if (!window.matchMedia) {
-                return; // Not supported
-            }
-            
-            // Watch for dark mode preference changes
-            const darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            
-            // Handle change event
-            const handleChange = function() {
-                // Only apply if user hasn't set a preference
-                if (!localStorage.getItem('nova_x_theme_preference')) {
-                    const systemTheme = self.getSystemTheme();
-                    self.setTheme(systemTheme, false);
-                }
-            };
-            
-            // Modern browsers
-            if (darkMediaQuery.addEventListener) {
-                darkMediaQuery.addEventListener('change', handleChange);
-            } else if (darkMediaQuery.addListener) {
-                // Fallback for older browsers
-                darkMediaQuery.addListener(handleChange);
-            }
         }
-    };
+        
+        // Also bind to data-theme-toggle attribute for flexibility
+        const toggleButtons = document.querySelectorAll('[data-theme-toggle]');
+        toggleButtons.forEach(function(btn) {
+            if (btn !== toggleButton) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleTheme();
+                });
+            }
+        });
+    }
 
-    // Initialize when DOM is ready
+    /**
+     * Initialize theme toggle on page load
+     */
     function initializeThemeToggle() {
-        // Check if toggle button exists
         const toggleButton = document.getElementById('nova-x-theme-toggle');
         if (!toggleButton) {
             // Retry after a short delay if element doesn't exist yet (max 5 retries = 500ms)
@@ -278,7 +193,8 @@
                 initializeThemeToggle.retryCount++;
                 setTimeout(initializeThemeToggle, 100);
             } else {
-                console.warn('Nova-X: Theme toggle button not found after multiple attempts');
+                // Even if button doesn't exist, still load theme preference
+                loadUserThemePreference();
             }
             return;
         }
@@ -286,22 +202,40 @@
         // Reset retry count on success
         initializeThemeToggle.retryCount = 0;
         
-        // Initialize theme toggle
-        NovaXThemeToggle.init();
+        // Load theme preference first
+        loadUserThemePreference();
+        
+        // Bind toggle events
+        bindToggleEvents();
+        
+        // Watch system preference changes
+        watchSystemPreference();
     }
 
-    // Use DOMContentLoaded for reliable initialization
+    // Load theme immediately to prevent flicker (before DOM is ready)
+    // This runs synchronously if possible, or as early as possible
     if (document.readyState === 'loading') {
+        // If still loading, try to load theme immediately
+        // Use requestAnimationFrame to ensure DOM is ready but before paint
+        requestAnimationFrame(function() {
+            loadUserThemePreference();
+        });
+        
+        // Also initialize on DOMContentLoaded for full setup
         document.addEventListener('DOMContentLoaded', function() {
             initializeThemeToggle();
         });
     } else {
         // DOM already loaded
+        loadUserThemePreference();
         initializeThemeToggle();
     }
 
     // Expose globally for other scripts
-    window.NovaXThemeToggle = NovaXThemeToggle;
+    window.NovaXThemeToggle = {
+        toggle: toggleTheme,
+        applyTheme: applyTheme,
+        loadPreference: loadUserThemePreference
+    };
 
 })();
-

@@ -30,6 +30,7 @@
             // No need to initialize here
             this.initHeaderOverlay();
             this.initNotices();
+            this.handleTokenRotation();
         },
 
         /**
@@ -116,7 +117,10 @@
                 $content.removeClass('nova-x-loading');
                 
                 // Trigger tab-specific initialization based on tab
-                if (tab === 'usage') {
+                if (tab === 'customize') {
+                    // Trigger event to load editor files
+                    $(document).trigger('nova-x-tab-switched', [tab]);
+                } else if (tab === 'usage') {
                     setTimeout(function() {
                         NovaXDashboard.loadUsageStats();
                     }, 100);
@@ -241,8 +245,14 @@
                     timeout: 60000,
                 })
                     .done(function (res) {
+                        // Handle notifier from response
+                        NovaXDashboard.handleNotifier(res, $status);
+                        
                         if (res.success) {
-                            NovaXDashboard.showStatus($status, '✅ Theme generated successfully!', 'success');
+                            // If notifier was handled, still show status for backward compatibility
+                            if (!res.notifier) {
+                                NovaXDashboard.showStatus($status, '✅ Theme generated successfully!', 'success');
+                            }
                             
                             // If output is provided, display it
                             if (res.output) {
@@ -258,25 +268,7 @@
                                 $outputContainer.data('theme-code', res.output);
                                 $outputContainer.data('theme-title', title);
                                 
-                                // Store code in sessionStorage for Customize tab
-                                // Parse the output to extract different file types (simplified parsing)
-                                const codeOutput = res.output;
-                                const codeData = {
-                                    style: codeOutput, // In real implementation, parse actual files
-                                    functions: '', // Will be parsed from actual theme structure
-                                    index: '', // Will be parsed from actual theme structure
-                                    updated: false
-                                };
-                                
-                                // Try to extract style.css if present
-                                const styleMatch = codeOutput.match(/\/\*\s*Theme Name.*?\*\/([\s\S]*?)(?:\/\*|$)/);
-                                if (styleMatch) {
-                                    codeData.style = styleMatch[0];
-                                }
-                                
-                                sessionStorage.setItem('nova_x_generated_code', JSON.stringify(codeData));
-                                
-                                // If on customize tab, trigger a reload of the customize code
+                                // If on customize tab, trigger a reload of the customize code from REST API
                                 if (window.location.search.includes('tab=customize')) {
                                     $(document).trigger('nova-x-code-updated');
                                 }
@@ -285,7 +277,10 @@
                             // Clear prompt but keep title
                             $promptInput.val('');
                         } else {
-                            NovaXDashboard.showStatus($status, '❌ ' + (res.message || 'Theme generation failed'), 'error');
+                            // Error response - notifier should already be handled, but fallback if needed
+                            if (!res.notifier) {
+                                NovaXDashboard.showStatus($status, '❌ ' + (res.message || 'Theme generation failed'), 'error');
+                            }
                         }
                     })
                     .fail(function (xhr) {
@@ -310,7 +305,12 @@
                             console.warn('Nova-X: AJAX request failed with status', xhr.status, '. Theme file content may be incomplete.');
                         }
                         
-                        NovaXDashboard.showStatus($status, '❌ ' + errorMessage, 'error');
+                        // Use NovaXNotices if available, otherwise fallback to showStatus
+                        if (typeof NovaXNotices !== 'undefined') {
+                            NovaXNotices.error(errorMessage);
+                        } else {
+                            NovaXDashboard.showStatus($status, '❌ ' + errorMessage, 'error');
+                        }
                     })
                     .always(function () {
                         $button.prop('disabled', false);
@@ -321,15 +321,66 @@
             // Handle export button
             $exportBtn.on('click', function () {
                 const themeCode = $outputContainer.data('theme-code');
+                const themeTitle = $outputContainer.data('theme-title') || 'Nova-X Theme';
+                
                 if (!themeCode) {
-                    NovaXDashboard.showStatus($actionStatus, '❌ No theme code available.', 'error');
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.error('No theme code available. Please generate a theme first.');
+                    } else {
+                        NovaXDashboard.showStatus($actionStatus, '❌ No theme code available.', 'error');
+                    }
                     return;
                 }
 
-                // TODO: Implement export functionality via REST API
+                const $btn = $(this);
+                $btn.prop('disabled', true);
                 NovaXDashboard.showStatus($actionStatus, '⏳ Exporting theme...', 'loading');
-                // Placeholder for export functionality
-                NovaXDashboard.showStatus($actionStatus, '✅ Export feature coming soon.', 'success');
+
+                // Call export REST API endpoint
+                $.ajax({
+                    method: 'POST',
+                    url: novaXDashboard.restUrl + 'export-theme',
+                    contentType: 'application/json',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-WP-Nonce', novaXDashboard.nonce);
+                    },
+                    data: JSON.stringify({
+                        site_title: themeTitle,
+                        code: themeCode,
+                        nonce: novaXDashboard.generateNonce || '',
+                    }),
+                    timeout: 60000,
+                })
+                .done(function(res) {
+                    // Handle notifier from response
+                    NovaXDashboard.handleNotifier(res, $actionStatus);
+                    
+                    if (res.success && res.download_url) {
+                        // Trigger download
+                        window.location.href = res.download_url;
+                        if (!res.notifier) {
+                            NovaXDashboard.showStatus($actionStatus, '✅ Theme exported successfully!', 'success');
+                        }
+                    } else {
+                        if (!res.notifier) {
+                            NovaXDashboard.showStatus($actionStatus, '❌ ' + (res.message || 'Export failed'), 'error');
+                        }
+                    }
+                })
+                .fail(function(xhr) {
+                    let errorMessage = 'Export request failed.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.error(errorMessage);
+                    } else {
+                        NovaXDashboard.showStatus($actionStatus, '❌ ' + errorMessage, 'error');
+                    }
+                })
+                .always(function() {
+                    $btn.prop('disabled', false);
+                });
             });
 
             // Handle preview button
@@ -361,12 +412,19 @@
                     timeout: 60000,
                 })
                 .done(function(res) {
+                    // Handle notifier from response
+                    NovaXDashboard.handleNotifier(res, $actionStatus);
+                    
                     if (res.success && res.preview_url) {
                         sessionStorage.setItem('nova_x_preview_url', res.preview_url);
                         $(document).trigger('nova-x-preview-ready', [res.preview_url]);
-                        NovaXDashboard.showStatus($actionStatus, '✅ Preview ready! Switch to Live Preview tab to view.', 'success');
+                        if (!res.notifier) {
+                            NovaXDashboard.showStatus($actionStatus, '✅ Preview ready! Switch to Live Preview tab to view.', 'success');
+                        }
                     } else {
-                        NovaXDashboard.showStatus($actionStatus, '❌ ' + (res.message || 'Preview preparation failed.'), 'error');
+                        if (!res.notifier) {
+                            NovaXDashboard.showStatus($actionStatus, '❌ ' + (res.message || 'Preview preparation failed.'), 'error');
+                        }
                     }
                 })
                 .fail(function(xhr) {
@@ -374,7 +432,11 @@
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
                     }
-                    NovaXDashboard.showStatus($actionStatus, '❌ ' + errorMessage, 'error');
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.error(errorMessage);
+                    } else {
+                        NovaXDashboard.showStatus($actionStatus, '❌ ' + errorMessage, 'error');
+                    }
                 })
                 .always(function() {
                     $btn.prop('disabled', false);
@@ -406,7 +468,11 @@
 
             $button.on('click', function () {
                 if (!$output.val()) {
-                    alert('No content to copy.');
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.warning('No content to copy.');
+                    } else {
+                        alert('No content to copy.');
+                    }
                     return;
                 }
 
@@ -438,7 +504,11 @@
 
             $button.on('click', function () {
                 if (!$output.val()) {
-                    alert('No content to export. Please generate a theme first.');
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.warning('No content to export. Please generate a theme first.');
+                    } else {
+                        alert('No content to export. Please generate a theme first.');
+                    }
                     return;
                 }
 
@@ -488,18 +558,29 @@
                     timeout: 30000,
                 })
                     .done(function (res) {
+                        // Handle notifier from response
+                        NovaXDashboard.handleNotifier(res, $status);
+                        
                         if (res.success) {
-                            NovaXDashboard.showStatus($status, '✅ Tracker reset successfully!', 'success');
+                            if (!res.notifier) {
+                                NovaXDashboard.showStatus($status, '✅ Tracker reset successfully!', 'success');
+                            }
                             // Reload usage stats after reset
                             setTimeout(function () {
                                 NovaXDashboard.loadUsageStats();
                             }, 500);
                         } else {
-                            NovaXDashboard.showStatus($status, '❌ ' + (res.message || 'Reset failed'), 'error');
+                            if (!res.notifier) {
+                                NovaXDashboard.showStatus($status, '❌ ' + (res.message || 'Reset failed'), 'error');
+                            }
                         }
                     })
                     .fail(function (xhr) {
-                        NovaXDashboard.showStatus($status, '❌ Request failed. Please try again.', 'error');
+                        if (typeof NovaXNotices !== 'undefined') {
+                            NovaXNotices.error('Request failed. Please try again.');
+                        } else {
+                            NovaXDashboard.showStatus($status, '❌ Request failed. Please try again.', 'error');
+                        }
                     })
                     .always(function () {
                         $button.prop('disabled', false);
@@ -719,79 +800,94 @@
                 }
             };
 
-            // Function to load code from sessionStorage
-            const loadCustomizeCode = function() {
-                const generatedCode = sessionStorage.getItem('nova_x_generated_code');
-                if (generatedCode) {
-                    try {
-                        const codeData = JSON.parse(generatedCode);
-                        
-                        // Load style.css
-                        if (codeData.style) {
-                            $('#nova-x-style-css').val(codeData.style);
-                            checkEmptyState('style', codeData.style);
-                            // Store original if not already stored
-                            if (!$originalCode.attr('data-style')) {
-                                $originalCode.attr('data-style', codeData.style);
-                            }
-                        } else {
-                            checkEmptyState('style', '');
-                            console.warn('Nova-X: style.css content is empty or not loaded. Please regenerate the theme.');
-                        }
-                        
-                        // Load functions.php
-                        if (codeData.functions) {
-                            $('#nova-x-functions-php').val(codeData.functions);
-                            checkEmptyState('functions', codeData.functions);
-                            if (!$originalCode.attr('data-functions')) {
-                                $originalCode.attr('data-functions', codeData.functions);
-                            }
-                        } else {
-                            checkEmptyState('functions', '');
-                            console.warn('Nova-X: functions.php content is empty or not loaded. Please regenerate the theme.');
-                        }
-                        
-                        // Load index.php
-                        if (codeData.index) {
-                            $('#nova-x-index-php').val(codeData.index);
-                            checkEmptyState('index', codeData.index);
-                            if (!$originalCode.attr('data-index')) {
-                                $originalCode.attr('data-index', codeData.index);
-                            }
-                        } else {
-                            checkEmptyState('index', '');
-                            console.warn('Nova-X: index.php content is empty or not loaded. Please regenerate the theme.');
-                        }
-                    } catch (e) {
-                        console.error('Nova-X: Error parsing generated code:', e);
-                        // Show empty states for all files on parse error
-                        checkEmptyState('style', '');
-                        checkEmptyState('functions', '');
-                        checkEmptyState('index', '');
-                    }
-                } else {
-                    // No generated code found - show empty states
+            // Function to load editor files from REST API
+            const loadEditorFiles = async function() {
+                // Check if NovaXEditorData is available
+                if (typeof NovaXEditorData === 'undefined' || !NovaXEditorData.rest_url) {
+                    console.error('Nova-X: NovaXEditorData is not available. Cannot load editor files.');
                     checkEmptyState('style', '');
                     checkEmptyState('functions', '');
                     checkEmptyState('index', '');
-                    console.warn('Nova-X: No generated theme code found. Please generate a theme first.');
+                    return;
+                }
+
+                try {
+                    const res = await fetch(NovaXEditorData.rest_url);
+                    const json = await res.json();
+                    
+                    if (!json.success) {
+                        const errorMessage = json?.notifier?.message || json?.message || 'Failed to load files';
+                        throw new Error(errorMessage);
+                    }
+                    
+                    const files = json.files || {};
+                    
+                    // Load style.css
+                    const styleContent = files['style.css'] || '';
+                    $('#nova-x-style-css').val(styleContent);
+                    checkEmptyState('style', styleContent);
+                    // Store original if not already stored
+                    if (!$originalCode.attr('data-style')) {
+                        $originalCode.attr('data-style', styleContent);
+                    }
+                    
+                    // Load functions.php
+                    const functionsContent = files['functions.php'] || '';
+                    $('#nova-x-functions-php').val(functionsContent);
+                    checkEmptyState('functions', functionsContent);
+                    if (!$originalCode.attr('data-functions')) {
+                        $originalCode.attr('data-functions', functionsContent);
+                    }
+                    
+                    // Load index.php
+                    const indexContent = files['index.php'] || '';
+                    $('#nova-x-index-php').val(indexContent);
+                    checkEmptyState('index', indexContent);
+                    if (!$originalCode.attr('data-index')) {
+                        $originalCode.attr('data-index', indexContent);
+                    }
+
+                    // Show success message if NovaXNotices is available
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.success('Theme files loaded into editor.');
+                    }
+                } catch (err) {
+                    console.error('Nova-X: Error loading editor files:', err);
+                    // Show empty states for all files on error
+                    checkEmptyState('style', '');
+                    checkEmptyState('functions', '');
+                    checkEmptyState('index', '');
+                    
+                    // Show error message if NovaXNotices is available
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.error(err.message || 'Failed to load theme files.');
+                    } else {
+                        console.warn('Nova-X: ' + (err.message || 'Failed to load theme files.'));
+                    }
                 }
             };
 
             // Load code on initial page load if on customize tab
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('tab') === 'customize') {
-                loadCustomizeCode();
+                loadEditorFiles();
             }
 
             // Also load when clicking customize tab link
             $('.nova-x-tab-wrapper .nav-tab[href*="tab=customize"]').on('click', function() {
-                setTimeout(loadCustomizeCode, 100);
+                setTimeout(loadEditorFiles, 100);
             });
             
-            // Listen for code updates from other tabs
+            // Listen for code updates from other tabs (e.g., after theme generation)
             $(document).on('nova-x-code-updated', function() {
-                setTimeout(loadCustomizeCode, 100);
+                setTimeout(loadEditorFiles, 100);
+            });
+            
+            // Also load when switching to customize tab via sidebar
+            $(document).on('nova-x-tab-switched', function(e, tab) {
+                if (tab === 'customize') {
+                    setTimeout(loadEditorFiles, 100);
+                }
             });
 
             // Handle save changes
@@ -807,20 +903,12 @@
                 const functionsCode = $('#nova-x-functions-php').val();
                 const indexCode = $('#nova-x-index-php').val();
 
-                // Store updated code in sessionStorage
-                const updatedCode = {
-                    style: styleCode,
-                    functions: functionsCode,
-                    index: indexCode,
-                    updated: true
-                };
-                sessionStorage.setItem('nova_x_generated_code', JSON.stringify(updatedCode));
-
-                // Simulate save (in future, this could call REST API)
+                // Note: Save functionality is read-only for now
+                // In future, this could call REST API to save changes
                 setTimeout(function () {
                     $btn.prop('disabled', false);
                     $loader.addClass('nova-x-hidden');
-                    NovaXDashboard.showStatus($status, '✅ Changes saved successfully.', 'success');
+                    NovaXDashboard.showStatus($status, '✅ Changes saved locally.', 'success');
                     
                     // Clear status after 3 seconds
                     setTimeout(function () {
@@ -840,7 +928,7 @@
                 $loader.removeClass('nova-x-hidden');
                 NovaXDashboard.showStatus($status, '⏳ Resetting to original...', 'loading');
 
-                // Restore original values
+                // Restore original values from hidden div storage
                 const originalStyle = $originalCode.attr('data-style') || '';
                 const originalFunctions = $originalCode.attr('data-functions') || '';
                 const originalIndex = $originalCode.attr('data-index') || '';
@@ -849,14 +937,10 @@
                 $('#nova-x-functions-php').val(originalFunctions);
                 $('#nova-x-index-php').val(originalIndex);
 
-                // Restore in sessionStorage
-                const originalCode = {
-                    style: originalStyle,
-                    functions: originalFunctions,
-                    index: originalIndex,
-                    updated: false
-                };
-                sessionStorage.setItem('nova_x_generated_code', JSON.stringify(originalCode));
+                // Update empty states
+                checkEmptyState('style', originalStyle);
+                checkEmptyState('functions', originalFunctions);
+                checkEmptyState('index', originalIndex);
 
                 setTimeout(function () {
                     $btn.prop('disabled', false);
@@ -918,6 +1002,9 @@
                 timeout: 30000,
             })
                 .done(function (res) {
+                    // Handle notifier from response
+                    NovaXDashboard.handleNotifier(res);
+                    
                     if (res.success) {
                         // Update stat cards
                         const formattedTokens = res.total_tokens.toLocaleString();
@@ -1043,6 +1130,9 @@
                 timeout: 30000,
             })
                 .done(function (res) {
+                    // Handle notifier from response
+                    NovaXDashboard.handleNotifier(res);
+                    
                     if (res.success && res.themes && res.themes.length > 0) {
                         // Render themes table
                         let tableHTML = '';
@@ -1126,17 +1216,28 @@
                 timeout: 60000,
             })
                 .done(function (res) {
+                    // Handle notifier from response
+                    NovaXDashboard.handleNotifier(res, $status);
+                    
                     if (res.success) {
-                        NovaXDashboard.showStatus($status, '✅ Theme installed successfully!', 'success');
+                        if (!res.notifier) {
+                            NovaXDashboard.showStatus($status, '✅ Theme installed successfully!', 'success');
+                        }
                         setTimeout(function() {
                             location.reload();
                         }, 2000);
                     } else {
-                        NovaXDashboard.showStatus($status, '❌ ' + (res.message || 'Installation failed'), 'error');
+                        if (!res.notifier) {
+                            NovaXDashboard.showStatus($status, '❌ ' + (res.message || 'Installation failed'), 'error');
+                        }
                     }
                 })
                 .fail(function (xhr) {
-                    NovaXDashboard.showStatus($status, '❌ Installation request failed. Please try again.', 'error');
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.error('Installation request failed. Please try again.');
+                    } else {
+                        NovaXDashboard.showStatus($status, '❌ Installation request failed. Please try again.', 'error');
+                    }
                 });
         },
 
@@ -1168,8 +1269,13 @@
                 timeout: 30000,
             })
                 .done(function (res) {
+                    // Handle notifier from response
+                    NovaXDashboard.handleNotifier(res, $status);
+                    
                     if (res.success) {
-                        NovaXDashboard.showStatus($status, '✅ Theme deleted successfully!', 'success');
+                        if (!res.notifier) {
+                            NovaXDashboard.showStatus($status, '✅ Theme deleted successfully!', 'success');
+                        }
                         // Remove row with animation
                         $row.fadeOut(300, function() {
                             $(this).remove();
@@ -1182,12 +1288,18 @@
                             }
                         });
                     } else {
-                        NovaXDashboard.showStatus($status, '❌ ' + (res.message || 'Delete failed'), 'error');
+                        if (!res.notifier) {
+                            NovaXDashboard.showStatus($status, '❌ ' + (res.message || 'Delete failed'), 'error');
+                        }
                         $row.removeClass('nova-x-deleting');
                     }
                 })
                 .fail(function (xhr) {
-                    NovaXDashboard.showStatus($status, '❌ Delete request failed. Please try again.', 'error');
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.error('Delete request failed. Please try again.');
+                    } else {
+                        NovaXDashboard.showStatus($status, '❌ Delete request failed. Please try again.', 'error');
+                    }
                     $row.removeClass('nova-x-deleting');
                 });
         },
@@ -1216,19 +1328,30 @@
                 timeout: 30000,
             })
                 .done(function (res) {
+                    // Handle notifier from response
+                    NovaXDashboard.handleNotifier(res, $status);
+                    
                     if (res.success) {
-                        NovaXDashboard.showStatus($status, '✅ Theme re-exported successfully!', 'success');
+                        if (!res.notifier) {
+                            NovaXDashboard.showStatus($status, '✅ Theme re-exported successfully!', 'success');
+                        }
                         // Reload themes list
                         setTimeout(function() {
                             NovaXDashboard.loadExportedThemes();
                         }, 1000);
                     } else {
-                        NovaXDashboard.showStatus($status, '❌ ' + (res.message || 'Re-export failed'), 'error');
+                        if (!res.notifier) {
+                            NovaXDashboard.showStatus($status, '❌ ' + (res.message || 'Re-export failed'), 'error');
+                        }
                         $btn.prop('disabled', false);
                     }
                 })
                 .fail(function (xhr) {
-                    NovaXDashboard.showStatus($status, '❌ Re-export request failed. Please try again.', 'error');
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.error('Re-export request failed. Please try again.');
+                    } else {
+                        NovaXDashboard.showStatus($status, '❌ Re-export request failed. Please try again.', 'error');
+                    }
                     $btn.prop('disabled', false);
                 });
         },
@@ -1261,6 +1384,39 @@
             $element.removeClass('loading success error')
                 .addClass(type)
                 .html(message);
+        },
+
+        /**
+         * Handle notifier from REST API response
+         * 
+         * @param {Object} response REST API response object
+         * @param {jQuery} $fallbackElement Optional fallback element for showStatus
+         */
+        handleNotifier: function (response, $fallbackElement) {
+            // Check if response has notifier data
+            if (response && response.notifier && typeof NovaXNotices !== 'undefined') {
+                const notifier = response.notifier;
+                const type = notifier.type || 'info';
+                const message = notifier.message || '';
+                
+                if (message) {
+                    // Use NovaXNotices API
+                    if (type === 'success') {
+                        NovaXNotices.success(message);
+                    } else if (type === 'error') {
+                        NovaXNotices.error(message);
+                    } else if (type === 'warning') {
+                        NovaXNotices.warning(message);
+                    } else {
+                        NovaXNotices.info(message);
+                    }
+                }
+            } else if ($fallbackElement && response && response.message) {
+                // Fallback to showStatus if NovaXNotices is not available
+                const type = response.success ? 'success' : 'error';
+                const emoji = response.success ? '✅ ' : '❌ ';
+                this.showStatus($fallbackElement, emoji + response.message, type);
+            }
         },
 
         /**
@@ -1345,10 +1501,9 @@
                     // Show "Coming Soon" message
                     const message = 'Upgrade features are coming soon! Stay tuned for premium features and enhanced capabilities.';
                     
-                    // Use WordPress admin notice style if available, otherwise simple alert
-                    if (typeof wp !== 'undefined' && wp.data && wp.data.select('core/notices')) {
-                        // Could use WordPress notices API if needed
-                        alert(message);
+                    // Use NovaXNotices if available, otherwise fallback to alert
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.info(message);
                     } else {
                         alert(message);
                     }
@@ -1372,6 +1527,130 @@
                 setTimeout(function() {
                     $notice.remove();
                 }, 300);
+            });
+        },
+
+        /**
+         * Handle token rotation (Settings page)
+         */
+        handleTokenRotation: function () {
+            const $rotateBtn = $('.rotate-token-btn');
+            const $rotateStatus = $('.rotate-token-status');
+            const $providerSelect = $('select[name="nova_x_provider"]');
+            const $apiKeyInput = $('input[name="nova_x_api_key"]');
+
+            if (!$rotateBtn.length) {
+                return; // Token rotation not available on this page
+            }
+
+            // Update rotate button data-provider when provider selection changes
+            $providerSelect.on('change', function () {
+                const provider = $(this).val();
+                $rotateBtn.attr('data-provider', provider);
+            });
+
+            // Handle token rotation
+            $rotateBtn.on('click', function () {
+                const $btn = $(this);
+                const provider = $btn.attr('data-provider');
+                const newKey = $apiKeyInput.val().trim();
+
+                // Confirmation dialog
+                if (!confirm('Are you sure you want to rotate the token for ' + provider + '? This will replace the existing encrypted token.')) {
+                    return;
+                }
+
+                // Validate that API key is provided
+                if (!newKey || newKey.indexOf('*') !== -1) {
+                    $rotateStatus.html('❌ Please enter a valid API key in the API Key field first.');
+                    return;
+                }
+
+                // Disable button and show loading state
+                $btn.prop('disabled', true);
+                $btn.html('<span class="spinner is-active"></span> Rotating...');
+                $rotateStatus.html('⏳ Rotating token...');
+
+                // Check if NovaXData is available (settings page)
+                const rotateUrl = (typeof NovaXData !== 'undefined' && NovaXData.rotateTokenUrl) 
+                    ? NovaXData.rotateTokenUrl 
+                    : (typeof novaXDashboard !== 'undefined' ? novaXDashboard.restUrl + 'rotate-token' : '');
+                const nonce = (typeof NovaXData !== 'undefined' && NovaXData.nonce) 
+                    ? NovaXData.nonce 
+                    : (typeof novaXDashboard !== 'undefined' ? novaXDashboard.nonce : '');
+
+                if (!rotateUrl || !nonce) {
+                    $rotateStatus.html('❌ Configuration error. Please refresh the page.');
+                    $btn.prop('disabled', false);
+                    $btn.html('🔁 Rotate Token');
+                    return;
+                }
+
+                // Send AJAX request
+                $.ajax({
+                    method: 'POST',
+                    url: rotateUrl,
+                    contentType: 'application/json',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-WP-Nonce', nonce);
+                    },
+                    data: JSON.stringify({
+                        provider: provider,
+                        new_key: newKey,
+                        force: true,
+                        nonce: nonce,
+                    }),
+                    timeout: 30000,
+                })
+                .done(function (res) {
+                    // Handle notifier from response
+                    NovaXDashboard.handleNotifier(res, $rotateStatus);
+                    
+                    if (res.success) {
+                        if (!res.notifier) {
+                            $rotateStatus.html('✅ ' + (res.message || 'Token rotated successfully'));
+                            $rotateStatus.addClass('fade-success');
+                        }
+                        // Clear API key field after successful rotation
+                        $apiKeyInput.val('');
+                        // Reload page after 1.5 seconds to refresh settings
+                        setTimeout(function () {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        if (!res.notifier) {
+                            $rotateStatus.html('❌ ' + (res.message || 'Token rotation failed'));
+                        }
+                    }
+                })
+                .fail(function (xhr) {
+                    let errorMessage = 'Request failed. Check your network or permissions.';
+                    
+                    if (xhr.status === 0) {
+                        errorMessage = 'Network error. Please check your connection.';
+                    } else if (xhr.status === 403) {
+                        errorMessage = 'Permission denied. Please refresh the page and try again.';
+                    } else if (xhr.status === 404) {
+                        errorMessage = 'API endpoint not found. Please check plugin configuration.';
+                    } else if (xhr.status >= 500) {
+                        errorMessage = 'Server error. Please try again later.';
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.statusText === 'timeout') {
+                        errorMessage = 'Request timed out. Please try again.';
+                    }
+                    
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.error(errorMessage);
+                    } else {
+                        $rotateStatus.html('❌ ' + errorMessage);
+                    }
+                })
+                .always(function () {
+                    // Re-enable button after request completes
+                    $btn.prop('disabled', false);
+                    $btn.html('🔁 Rotate Token');
+                });
             });
         },
 
@@ -1464,6 +1743,25 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         // Update header position on initial load
         setTimeout(updateHeaderPosition, 100);
+    }
+
+    // Architecture Page - Placeholder interactions
+    if (document.querySelector('.nova-x-architecture-container') || document.querySelector('.nova-x-cards-grid')) {
+        // Tooltip functionality for disabled cards
+        const disabledCards = document.querySelectorAll('.nova-x-card.disabled');
+        disabledCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                // Future: Show tooltip with "Coming Soon" message
+                this.style.cursor = 'not-allowed';
+            });
+        });
+
+        // Future: Card collapse/expand functionality
+        const architectureCards = document.querySelectorAll('.nova-x-card');
+        architectureCards.forEach(card => {
+            // Placeholder for future card interactions
+            card.setAttribute('data-interactive', 'false');
+        });
     }
 });
 

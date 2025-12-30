@@ -20,6 +20,7 @@ class Nova_X_Theme_Manager {
     private static function get_exports_dir() {
         $upload_dir = wp_upload_dir();
         if ( $upload_dir['error'] ) {
+            error_log( '[Nova-X] Cannot access uploads directory — User ID: ' . get_current_user_id() );
             return false;
         }
 
@@ -27,7 +28,10 @@ class Nova_X_Theme_Manager {
         
         // Ensure directory exists
         if ( ! file_exists( $exports_dir ) ) {
-            wp_mkdir_p( $exports_dir );
+            if ( ! wp_mkdir_p( $exports_dir ) ) {
+                error_log( '[Nova-X] Failed to create exports directory: ' . $exports_dir . ' — User ID: ' . get_current_user_id() );
+                return false;
+            }
         }
 
         return $exports_dir;
@@ -204,6 +208,7 @@ class Nova_X_Theme_Manager {
         }
 
         if ( ! unlink( $zip_path ) ) {
+            error_log( '[Nova-X] Delete exported theme failed - Cannot delete file: ' . $zip_path . ' — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'Failed to delete theme file.',

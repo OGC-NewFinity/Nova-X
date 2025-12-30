@@ -1,0 +1,150 @@
+/**
+ * Nova-X Settings Page Styles
+ * 
+ * @package Nova-X
+ */
+
+/* Status Indicator Styles */
+.nova-x-key-status {
+    font-weight: 500;
+    margin-left: 6px;
+    font-size: 13px;
+    display: inline-block;
+}
+
+.nova-x-status-saved {
+    color: #00ffb3;
+}
+
+.nova-x-status-invalid {
+    color: #ff4d4f;
+}
+
+.nova-x-status-missing {
+    color: #ffbc25;
+}
+
+.nova-x-status-encrypted {
+    color: #5864ff;
+}
+
+/* Settings Wrap */
+.nova-x-settings-wrap {
+    max-width: 900px;
+}
+
+.nova-x-settings-wrap .form-table th {
+    width: 200px;
+    padding: 20px 10px 20px 0;
+    vertical-align: top;
+}
+
+.nova-x-settings-wrap .form-table td {
+    padding: 15px 10px;
+}
+
+/* API Key Field Styles */
+.nova-x-api-key-field {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+}
+
+.nova-x-api-key-field:focus {
+    border-color: #5864ff;
+    box-shadow: 0 0 0 1px #5864ff;
+}
+
+/* Field State Indicators */
+.nova-x-api-key-field[data-status="unchanged"] {
+    background-color: #f0f0f1;
+}
+
+.nova-x-api-key-field[data-status="changed"] {
+    background-color: #fff;
+    border-color: #00ffb3;
+}
+
+.nova-x-api-key-field[data-status="empty"] {
+    background-color: #fff3cd;
+    border-color: #ffbc25;
+}
+
+/* Description Text */
+.nova-x-settings-wrap .description {
+    margin-top: 8px;
+    font-style: italic;
+    color: #646970;
+}
+
+/* Rotate Token Button Styles */
+.rotate-token-btn {
+    white-space: nowrap;
+}
+
+.rotate-token-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.rotate-token-btn .spinner {
+    display: inline-block;
+    margin-right: 5px;
+}
+
+/* Rotate Token Status */
+.rotate-token-status {
+    display: inline-block;
+    margin-top: 5px;
+    font-size: 13px;
+    min-height: 20px;
+}
+
+.rotate-token-status.rotating {
+    color: #5864ff;
+}
+
+.rotate-token-status.success {
+    color: #00ffb3;
+}
+
+.rotate-token-status.error {
+    color: #ff4d4f;
+}
+
+/* Input Field Container */
+.nova-x-settings-wrap .form-table td > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.nova-x-settings-wrap .form-table td > div input {
+    flex: 1;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+    .nova-x-settings-wrap .form-table th,
+    .nova-x-settings-wrap .form-table td {
+        display: block;
+        width: 100%;
+        padding: 10px 0;
+    }
+    
+    .nova-x-key-status {
+        display: block;
+        margin-left: 0;
+        margin-top: 5px;
+    }
+
+    .nova-x-settings-wrap .form-table td > div {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .rotate-token-btn {
+        width: 100%;
+    }
+}
+

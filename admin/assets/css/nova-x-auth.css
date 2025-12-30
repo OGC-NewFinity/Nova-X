@@ -1,0 +1,118 @@
+/**
+ * Nova-X Authentication Styles
+ * 
+ * @package Nova-X
+ */
+
+.nova-x-auth-form-container {
+    max-width: 500px;
+    margin: 20px 0;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.nova-x-auth-form-container h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.nova-x-auth-form p {
+    margin-bottom: 15px;
+}
+
+.nova-x-auth-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.nova-x-auth-form input[type="text"],
+.nova-x-auth-form input[type="email"],
+.nova-x-auth-form input[type="password"] {
+    width: 100%;
+    max-width: 400px;
+    padding: 8px 12px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.nova-x-auth-form input[type="text"]:focus,
+.nova-x-auth-form input[type="email"]:focus,
+.nova-x-auth-form input[type="password"]:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+    outline: 2px solid transparent;
+}
+
+.nova-x-auth-form .submit {
+    margin-top: 20px;
+    margin-bottom: 15px;
+}
+
+.nova-x-auth-form button[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.nx-auth-switch {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #c3c4c7;
+    color: #646970;
+    font-size: 14px;
+}
+
+.nx-auth-switch a {
+    color: #2271b1;
+    text-decoration: none;
+}
+
+.nx-auth-switch a:hover {
+    color: #135e96;
+    text-decoration: underline;
+}
+
+.nova-x-auth-message {
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.nova-x-auth-message.success {
+    background-color: #00a32a;
+    color: #fff;
+    border-left: 4px solid #00a32a;
+}
+
+.nova-x-auth-message.error {
+    background-color: #d63638;
+    color: #fff;
+    border-left: 4px solid #d63638;
+}
+
+.nova-x-auth-welcome {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f0f0f1;
+    border-left: 4px solid #2271b1;
+    border-radius: 4px;
+}
+
+.nova-x-auth-welcome p {
+    margin: 0 0 10px 0;
+}
+
+.nova-x-auth-welcome form {
+    margin: 0;
+}
+

@@ -43,7 +43,7 @@ class Nova_X_Theme_Exporter {
         // Get uploads directory
         $upload_dir = wp_upload_dir();
         if ( $upload_dir['error'] ) {
-            error_log( 'Nova-X: Theme export failed - Cannot access uploads directory' );
+            error_log( '[Nova-X] Theme export failed - Cannot access uploads directory — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'Failed to access uploads directory. Please check file permissions.',
@@ -52,17 +52,31 @@ class Nova_X_Theme_Exporter {
 
         // Create export directory
         $export_base = trailingslashit( $upload_dir['basedir'] ) . 'nova-x-exports';
-        wp_mkdir_p( $export_base );
+        if ( ! wp_mkdir_p( $export_base ) ) {
+            error_log( '[Nova-X] Theme export failed - Cannot create export directory: ' . $export_base . ' — User ID: ' . get_current_user_id() );
+            return [
+                'success' => false,
+                'message' => 'Failed to create export directory. Please check file permissions.',
+            ];
+        }
 
         // Create theme-specific directory
         $theme_dir = trailingslashit( $export_base ) . $slug;
         
         // Remove existing directory if it exists
         if ( file_exists( $theme_dir ) ) {
-            self::delete_directory( $theme_dir );
+            if ( ! self::delete_directory( $theme_dir ) ) {
+                error_log( '[Nova-X] Theme export failed - Cannot delete existing directory: ' . $theme_dir . ' — User ID: ' . get_current_user_id() );
+            }
         }
         
-        wp_mkdir_p( $theme_dir );
+        if ( ! wp_mkdir_p( $theme_dir ) ) {
+            error_log( '[Nova-X] Theme export failed - Cannot create theme directory: ' . $theme_dir . ' — User ID: ' . get_current_user_id() );
+            return [
+                'success' => false,
+                'message' => 'Failed to create theme directory. Please check file permissions.',
+            ];
+        }
 
         // Parse and create theme files
         $result = self::create_theme_files( $theme_dir, $site_title, $code );
@@ -112,7 +126,7 @@ class Nova_X_Theme_Exporter {
             $written   = file_put_contents( $file_path, $content );
 
             if ( false === $written ) {
-                error_log( 'Nova-X: Theme export failed - Could not write file ' . $filename . ' for theme ' . $slug );
+                error_log( '[Nova-X] Theme export failed - Could not write file: ' . $filename . ' for theme ' . $slug . ' — User ID: ' . get_current_user_id() );
                 return [
                     'success' => false,
                     'message' => 'Failed to create theme file. Please check file permissions.',
@@ -217,7 +231,7 @@ Description: AI-generated WordPress theme
     private static function create_zip_archive( $theme_dir, $slug, $export_base ) {
         // Check if ZipArchive is available
         if ( ! class_exists( 'ZipArchive' ) ) {
-            error_log( 'Nova-X: Theme export failed - ZipArchive class not available for theme ' . $slug );
+            error_log( '[Nova-X] Theme export failed - ZipArchive class not available for theme ' . $slug . ' — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'ZIP archive functionality is not available on this server. Please contact your hosting provider.',
@@ -229,13 +243,24 @@ Description: AI-generated WordPress theme
 
         // Remove existing ZIP if it exists
         if ( file_exists( $zip_path ) ) {
-            unlink( $zip_path );
+            if ( ! unlink( $zip_path ) ) {
+                error_log( '[Nova-X] Theme export failed - Cannot delete existing ZIP: ' . $zip_path . ' — User ID: ' . get_current_user_id() );
+            }
         }
 
         $zip = new ZipArchive();
         
-        if ( $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
-            error_log( 'Nova-X: Theme export failed - Could not create ZIP archive for theme ' . $slug );
+        try {
+            $zip_result = $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE );
+            if ( $zip_result !== true ) {
+                error_log( '[Nova-X] Theme export failed - Could not create ZIP archive for theme ' . $slug . ' (error code: ' . $zip_result . ') — User ID: ' . get_current_user_id() );
+                return [
+                    'success' => false,
+                    'message' => 'Failed to create ZIP archive. Please check file permissions.',
+                ];
+            }
+        } catch ( Exception $e ) {
+            error_log( '[Nova-X] Theme export failed - Exception creating ZIP archive for theme ' . $slug . ': ' . $e->getMessage() . ' — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'Failed to create ZIP archive. Please check file permissions.',
@@ -253,14 +278,22 @@ Description: AI-generated WordPress theme
                 $file_path     = $file->getRealPath();
                 $relative_path = substr( $file_path, strlen( $theme_dir ) + 1 );
                 
-                $zip->addFile( $file_path, $relative_path );
+                if ( ! $zip->addFile( $file_path, $relative_path ) ) {
+                    error_log( '[Nova-X] Theme export failed - Could not add file to ZIP: ' . $relative_path . ' — User ID: ' . get_current_user_id() );
+                }
             }
         }
 
-        $zip->close();
+        if ( ! $zip->close() ) {
+            error_log( '[Nova-X] Theme export failed - Could not close ZIP archive for theme ' . $slug . ' — User ID: ' . get_current_user_id() );
+            return [
+                'success' => false,
+                'message' => 'Failed to finalize ZIP archive. Please try again.',
+            ];
+        }
 
         if ( ! file_exists( $zip_path ) ) {
-            error_log( 'Nova-X: Theme export failed - ZIP file not found after creation for theme ' . $slug );
+            error_log( '[Nova-X] Theme export failed - ZIP file not found after creation for theme ' . $slug . ' — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'ZIP archive was not created successfully. Please try again.',
@@ -286,7 +319,11 @@ Description: AI-generated WordPress theme
         }
 
         if ( ! is_dir( $dir ) ) {
-            return unlink( $dir );
+            $result = unlink( $dir );
+            if ( ! $result ) {
+                error_log( '[Nova-X] Failed to delete file: ' . $dir . ' — User ID: ' . get_current_user_id() );
+            }
+            return $result;
         }
 
         $files = array_diff( scandir( $dir ), [ '.', '..' ] );
@@ -296,11 +333,17 @@ Description: AI-generated WordPress theme
             if ( is_dir( $file_path ) ) {
                 self::delete_directory( $file_path );
             } else {
-                unlink( $file_path );
+                if ( ! unlink( $file_path ) ) {
+                    error_log( '[Nova-X] Failed to delete file: ' . $file_path . ' — User ID: ' . get_current_user_id() );
+                }
             }
         }
 
-        return rmdir( $dir );
+        $result = rmdir( $dir );
+        if ( ! $result ) {
+            error_log( '[Nova-X] Failed to delete directory: ' . $dir . ' — User ID: ' . get_current_user_id() );
+        }
+        return $result;
     }
 }
 

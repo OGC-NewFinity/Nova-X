@@ -53,7 +53,7 @@ class Nova_X_Theme_Installer {
         if ( ! self::copy_directory( $theme_dir, $preview_dir ) ) {
             // Clean up
             self::delete_directory( $theme_dir );
-            error_log( 'Nova-X: Theme preview failed - Could not copy theme to preview directory for slug ' . $theme_slug );
+            error_log( '[Nova-X] Theme preview failed - Could not copy theme to preview directory for slug ' . $theme_slug . ' — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'Failed to copy theme to preview directory. Please check file permissions.',
@@ -119,7 +119,7 @@ class Nova_X_Theme_Installer {
         if ( ! self::copy_directory( $theme_dir, $install_dir ) ) {
             // Clean up
             self::delete_directory( $theme_dir );
-            error_log( 'Nova-X: Theme installation failed - Could not copy theme to themes directory for slug ' . $theme_slug );
+            error_log( '[Nova-X] Theme installation failed - Could not copy theme to themes directory for slug ' . $theme_slug . ' — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'Failed to install theme. Please check file permissions.',
@@ -134,7 +134,7 @@ class Nova_X_Theme_Installer {
         if ( ! $theme->exists() ) {
             // Clean up installed theme
             self::delete_directory( $install_dir );
-            error_log( 'Nova-X: Theme installation failed - Installed theme is not valid for slug ' . $theme_slug );
+            error_log( '[Nova-X] Theme installation failed - Installed theme is not valid for slug ' . $theme_slug . ' — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'Installed theme is not valid. The theme may be missing required files.',
@@ -162,7 +162,7 @@ class Nova_X_Theme_Installer {
         // Get uploads directory for temporary storage
         $upload_dir = wp_upload_dir();
         if ( $upload_dir['error'] ) {
-            error_log( 'Nova-X: Theme installation failed - Cannot access uploads directory' );
+            error_log( '[Nova-X] Theme installation failed - Cannot access uploads directory — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'Failed to access uploads directory. Please check file permissions.',
@@ -191,7 +191,7 @@ class Nova_X_Theme_Installer {
             
             if ( is_wp_error( $zip_content ) ) {
                 $error_msg = $zip_content->get_error_message();
-                error_log( 'Nova-X: Theme installation failed - Download error: ' . $error_msg );
+                error_log( '[Nova-X] Theme installation failed - Download error: ' . $error_msg . ' — User ID: ' . get_current_user_id() );
                 return [
                     'success' => false,
                     'message' => 'Failed to download theme file. Please check the URL and try again.',
@@ -200,6 +200,7 @@ class Nova_X_Theme_Installer {
 
             $zip_body = wp_remote_retrieve_body( $zip_content );
             if ( empty( $zip_body ) ) {
+                error_log( '[Nova-X] Theme installation failed - ZIP file is empty — User ID: ' . get_current_user_id() );
                 return [
                     'success' => false,
                     'message' => 'ZIP file is empty.',
@@ -208,15 +209,29 @@ class Nova_X_Theme_Installer {
 
             // Save ZIP to temporary file
             $temp_dir = trailingslashit( $upload_dir['basedir'] ) . 'nova-x-temp';
-            wp_mkdir_p( $temp_dir );
+            if ( ! wp_mkdir_p( $temp_dir ) ) {
+                error_log( '[Nova-X] Theme installation failed - Cannot create temp directory: ' . $temp_dir . ' — User ID: ' . get_current_user_id() );
+                return [
+                    'success' => false,
+                    'message' => 'Failed to create temporary directory. Please check file permissions.',
+                ];
+            }
             
             $zip_path = trailingslashit( $temp_dir ) . 'theme-' . time() . '.zip';
-            file_put_contents( $zip_path, $zip_body );
+            $written = file_put_contents( $zip_path, $zip_body );
+            if ( false === $written ) {
+                error_log( '[Nova-X] Theme installation failed - Cannot write ZIP file: ' . $zip_path . ' — User ID: ' . get_current_user_id() );
+                return [
+                    'success' => false,
+                    'message' => 'Failed to save downloaded file. Please check file permissions.',
+                ];
+            }
         }
 
         // If we downloaded the file, we already have $zip_path set above
         // If it was a local file, $zip_path is already set
         if ( empty( $zip_path ) || ! file_exists( $zip_path ) ) {
+            error_log( '[Nova-X] Theme installation failed - ZIP file not found — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'ZIP file not found.',
@@ -229,7 +244,7 @@ class Nova_X_Theme_Installer {
             if ( $zip_path !== $zip_url && file_exists( $zip_path ) ) {
                 unlink( $zip_path );
             }
-            error_log( 'Nova-X: Theme installation failed - ZipArchive class not available' );
+            error_log( '[Nova-X] Theme installation failed - ZipArchive class not available — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'ZIP archive functionality is not available on this server. Please contact your hosting provider.',
@@ -238,16 +253,35 @@ class Nova_X_Theme_Installer {
 
         // Get temp directory for extraction
         $temp_dir = trailingslashit( $upload_dir['basedir'] ) . 'nova-x-temp';
-        wp_mkdir_p( $temp_dir );
+        if ( ! wp_mkdir_p( $temp_dir ) ) {
+            error_log( '[Nova-X] Theme installation failed - Cannot create temp directory: ' . $temp_dir . ' — User ID: ' . get_current_user_id() );
+            return [
+                'success' => false,
+                'message' => 'Failed to create temporary directory. Please check file permissions.',
+            ];
+        }
 
         // Extract ZIP
         $zip = new ZipArchive();
-        if ( $zip->open( $zip_path ) !== true ) {
+        try {
+            $zip_result = $zip->open( $zip_path );
+            if ( $zip_result !== true ) {
+                // Clean up if we created a temp file
+                if ( $zip_path !== $zip_url && file_exists( $zip_path ) ) {
+                    unlink( $zip_path );
+                }
+                error_log( '[Nova-X] Theme installation failed - Could not open ZIP file: ' . basename( $zip_path ) . ' (error code: ' . $zip_result . ') — User ID: ' . get_current_user_id() );
+                return [
+                    'success' => false,
+                    'message' => 'Failed to open theme ZIP file. The file may be corrupted.',
+                ];
+            }
+        } catch ( Exception $e ) {
             // Clean up if we created a temp file
             if ( $zip_path !== $zip_url && file_exists( $zip_path ) ) {
                 unlink( $zip_path );
             }
-            error_log( 'Nova-X: Theme installation failed - Could not open ZIP file: ' . basename( $zip_path ) );
+            error_log( '[Nova-X] Theme installation failed - Exception opening ZIP file: ' . basename( $zip_path ) . ' - ' . $e->getMessage() . ' — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'Failed to open theme ZIP file. The file may be corrupted.',
@@ -256,15 +290,40 @@ class Nova_X_Theme_Installer {
 
         // Create extraction directory
         $extract_dir = trailingslashit( $temp_dir ) . 'extract-' . time();
-        wp_mkdir_p( $extract_dir );
+        if ( ! wp_mkdir_p( $extract_dir ) ) {
+            $zip->close();
+            error_log( '[Nova-X] Theme installation failed - Cannot create extraction directory: ' . $extract_dir . ' — User ID: ' . get_current_user_id() );
+            return [
+                'success' => false,
+                'message' => 'Failed to create extraction directory. Please check file permissions.',
+            ];
+        }
 
         // Extract all files
-        $zip->extractTo( $extract_dir );
-        $zip->close();
+        try {
+            if ( ! $zip->extractTo( $extract_dir ) ) {
+                $zip->close();
+                error_log( '[Nova-X] Theme installation failed - Could not extract ZIP file: ' . basename( $zip_path ) . ' — User ID: ' . get_current_user_id() );
+                return [
+                    'success' => false,
+                    'message' => 'Failed to extract theme files. Please check file permissions.',
+                ];
+            }
+            $zip->close();
+        } catch ( Exception $e ) {
+            $zip->close();
+            error_log( '[Nova-X] Theme installation failed - Exception extracting ZIP file: ' . basename( $zip_path ) . ' - ' . $e->getMessage() . ' — User ID: ' . get_current_user_id() );
+            return [
+                'success' => false,
+                'message' => 'Failed to extract theme files. Please check file permissions.',
+            ];
+        }
 
         // Remove temporary ZIP if we created it
         if ( $zip_path !== $zip_url && file_exists( $zip_path ) ) {
-            unlink( $zip_path );
+            if ( ! unlink( $zip_path ) ) {
+                error_log( '[Nova-X] Failed to delete temporary ZIP file: ' . $zip_path . ' — User ID: ' . get_current_user_id() );
+            }
         }
 
         // Find theme directory (handle nested ZIP structure)
@@ -272,7 +331,7 @@ class Nova_X_Theme_Installer {
         
         if ( ! $theme_dir ) {
             self::delete_directory( $extract_dir );
-            error_log( 'Nova-X: Theme installation failed - Theme directory not found in ZIP file' );
+            error_log( '[Nova-X] Theme installation failed - Theme directory not found in ZIP file — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'Could not find theme directory in ZIP file. The ZIP may be incorrectly structured.',
@@ -326,11 +385,15 @@ class Nova_X_Theme_Installer {
      */
     private static function copy_directory( $source, $dest ) {
         if ( ! is_dir( $source ) ) {
+            error_log( '[Nova-X] Copy directory failed - Source is not a directory: ' . $source . ' — User ID: ' . get_current_user_id() );
             return false;
         }
 
         if ( ! is_dir( $dest ) ) {
-            wp_mkdir_p( $dest );
+            if ( ! wp_mkdir_p( $dest ) ) {
+                error_log( '[Nova-X] Copy directory failed - Cannot create destination directory: ' . $dest . ' — User ID: ' . get_current_user_id() );
+                return false;
+            }
         }
 
         $files = array_diff( scandir( $source ), [ '.', '..' ] );
@@ -345,6 +408,7 @@ class Nova_X_Theme_Installer {
                 }
             } else {
                 if ( ! copy( $source_file, $dest_file ) ) {
+                    error_log( '[Nova-X] Copy directory failed - Cannot copy file: ' . $source_file . ' to ' . $dest_file . ' — User ID: ' . get_current_user_id() );
                     return false;
                 }
             }
@@ -365,7 +429,11 @@ class Nova_X_Theme_Installer {
         }
 
         if ( ! is_dir( $dir ) ) {
-            return unlink( $dir );
+            $result = unlink( $dir );
+            if ( ! $result ) {
+                error_log( '[Nova-X] Failed to delete file: ' . $dir . ' — User ID: ' . get_current_user_id() );
+            }
+            return $result;
         }
 
         $files = array_diff( scandir( $dir ), [ '.', '..' ] );
@@ -375,11 +443,17 @@ class Nova_X_Theme_Installer {
             if ( is_dir( $file_path ) ) {
                 self::delete_directory( $file_path );
             } else {
-                unlink( $file_path );
+                if ( ! unlink( $file_path ) ) {
+                    error_log( '[Nova-X] Failed to delete file: ' . $file_path . ' — User ID: ' . get_current_user_id() );
+                }
             }
         }
 
-        return rmdir( $dir );
+        $result = rmdir( $dir );
+        if ( ! $result ) {
+            error_log( '[Nova-X] Failed to delete directory: ' . $dir . ' — User ID: ' . get_current_user_id() );
+        }
+        return $result;
     }
 }
 

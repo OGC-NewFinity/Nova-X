@@ -32,7 +32,7 @@ class Nova_X_Generator {
         // Check for duplicate directory before creation
         if ( file_exists( $target_dir ) ) {
             // Log the conflict
-            error_log( 'Nova-X: Theme folder conflict detected - ' . $slug . ' at ' . $target_dir );
+            error_log( '[Nova-X] Theme folder conflict detected - ' . $slug . ' at ' . $target_dir . ' — User ID: ' . get_current_user_id() );
             
             // Try to generate a new unique slug with microtime for additional uniqueness
             $microtime = (int) ( microtime( true ) * 1000 );
@@ -41,7 +41,7 @@ class Nova_X_Generator {
             
             // Final check - if still exists, return error
             if ( file_exists( $target_dir ) ) {
-                error_log( 'Nova-X: Theme generation failed - Unable to create unique folder after retry for slug ' . $slug );
+                error_log( '[Nova-X] Theme generation failed - Unable to create unique folder after retry for slug ' . $slug . ' — User ID: ' . get_current_user_id() );
                 return [
                     'success' => false,
                     'message' => 'Unable to create unique theme folder. Please try again or contact support.',
@@ -53,7 +53,7 @@ class Nova_X_Generator {
         $mkdir_result = wp_mkdir_p( $target_dir );
         
         if ( ! $mkdir_result ) {
-            error_log( 'Nova-X: Failed to create theme directory - ' . $target_dir );
+            error_log( '[Nova-X] Failed to create theme directory: ' . $target_dir . ' — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'Failed to create theme directory. Please check file permissions.',
@@ -87,7 +87,7 @@ Version: 0.1.0
         foreach ( $files_to_write as $filename => $content ) {
             $file_path = $target_dir . '/' . $filename;
             if ( ! $this->write_file( $file_path, $content ) ) {
-                error_log( 'Nova-X: Theme generation failed - Could not write ' . $filename . ' for theme ' . $slug );
+                error_log( '[Nova-X] Theme generation failed - Could not write file: ' . $filename . ' for theme ' . $slug . ' — User ID: ' . get_current_user_id() );
                 return [
                     'success' => false,
                     'message' => 'Failed to create theme file. Please check file permissions.',
@@ -110,12 +110,12 @@ Version: 0.1.0
             fclose( $handle );
             
             if ( false === $written ) {
-                error_log( 'Nova-X: File write failed - ' . basename( $path ) . ' in ' . dirname( $path ) );
+                error_log( '[Nova-X] File write failed - ' . basename( $path ) . ' in ' . dirname( $path ) . ' — User ID: ' . get_current_user_id() );
                 return false;
             }
             return true;
         } else {
-            error_log( 'Nova-X: Failed to open file for writing - ' . basename( $path ) . ' in ' . dirname( $path ) );
+            error_log( '[Nova-X] Failed to open file for writing - ' . basename( $path ) . ' in ' . dirname( $path ) . ' — User ID: ' . get_current_user_id() );
             return false;
         }
     }

@@ -37,6 +37,7 @@ class Nova_X_Admin {
         add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
         add_action( 'admin_init', [ $this, 'register_settings' ] );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
+        add_action( 'admin_notices', [ $this, 'display_admin_notices' ] );
     }
 
     /**
@@ -69,7 +70,9 @@ class Nova_X_Admin {
             [ $this, 'render_dashboard_page' ]
         );
 
-        // Settings submenu
+        // Settings submenu - DISABLED: Using Nova_X_Settings class instead
+        // The new multi-provider settings page is registered via Nova_X_Settings::register_settings_menu()
+        /*
         add_submenu_page(
             'nova-x-dashboard',
             esc_html__( 'Nova-X Settings', 'nova-x' ),
@@ -78,16 +81,19 @@ class Nova_X_Admin {
             'nova-x-settings',
             [ $this, 'render_settings_page' ]
         );
+        */
 
-        // Architecture Manager submenu
-        add_submenu_page(
-            'nova-x-dashboard',
-            esc_html__( 'Architecture Manager', 'nova-x' ),
-            esc_html__( 'Architecture', 'nova-x' ),
-            'manage_options',
-            'nova-x-architecture',
-            [ $this, 'render_architecture_page' ]
-        );
+        // Architecture Manager submenu (dev mode only)
+        if ( defined( 'NOVA_X_DEV_MODE' ) && NOVA_X_DEV_MODE ) {
+            add_submenu_page(
+                'nova-x-dashboard',
+                esc_html__( 'Architecture Manager', 'nova-x' ),
+                esc_html__( 'Architecture', 'nova-x' ),
+                'manage_options',
+                'nova-x-architecture',
+                [ $this, 'render_architecture_page' ]
+            );
+        }
 
         // License submenu
         add_submenu_page(
@@ -109,9 +115,8 @@ class Nova_X_Admin {
             [ $this, 'render_exports_page' ]
         );
 
-        // Beta Tools submenu (optional, can be toggled)
-        $beta_enabled = apply_filters( 'nova_x_enable_beta_tools', false );
-        if ( $beta_enabled ) {
+        // Beta Tools submenu (dev mode only)
+        if ( defined( 'NOVA_X_DEV_MODE' ) && NOVA_X_DEV_MODE ) {
             add_submenu_page(
                 'nova-x-dashboard',
                 esc_html__( 'Beta Tools', 'nova-x' ),
@@ -119,6 +124,18 @@ class Nova_X_Admin {
                 'manage_options',
                 'nova-x-beta',
                 [ $this, 'render_beta_page' ]
+            );
+        }
+
+        // Test Notifier page (for development/testing)
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            add_submenu_page(
+                'nova-x-dashboard',
+                esc_html__( 'Test Notifier', 'nova-x' ),
+                esc_html__( 'Test Notifier', 'nova-x' ),
+                'manage_options',
+                'nova-x-test-notifier',
+                [ $this, 'render_test_notifier_page' ]
             );
         }
     }
@@ -176,6 +193,124 @@ class Nova_X_Admin {
     }
 
     /**
+     * Handle branding (custom logo) form submission
+     */
+    private function handle_branding_save() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            add_settings_error( 'nova_x_branding', 'no_permission', esc_html__( 'You do not have permission to save branding settings.', 'nova-x' ), 'error' );
+            return;
+        }
+
+        $upload_dir = wp_upload_dir();
+        $nova_x_dir = $upload_dir['basedir'] . '/nova-x';
+        $custom_logo_path = $nova_x_dir . '/custom-logo.png';
+
+        // Handle logo removal
+        if ( isset( $_POST['nova_x_remove_logo'] ) && $_POST['nova_x_remove_logo'] == '1' ) {
+            $custom_logo_svg_path = $nova_x_dir . '/custom-logo.svg';
+            $removed = false;
+            
+            if ( file_exists( $custom_logo_path ) ) {
+                if ( ! wp_delete_file( $custom_logo_path ) ) {
+                    error_log( '[Nova-X] Failed to delete logo file: ' . $custom_logo_path . ' — User ID: ' . get_current_user_id() );
+                } else {
+                    $removed = true;
+                }
+            }
+            
+            if ( file_exists( $custom_logo_svg_path ) ) {
+                if ( ! wp_delete_file( $custom_logo_svg_path ) ) {
+                    error_log( '[Nova-X] Failed to delete SVG logo file: ' . $custom_logo_svg_path . ' — User ID: ' . get_current_user_id() );
+                } else {
+                    $removed = true;
+                }
+            }
+            
+            if ( $removed ) {
+                add_settings_error( 'nova_x_branding', 'logo_removed', esc_html__( 'Custom logo removed successfully.', 'nova-x' ), 'updated' );
+            }
+            return;
+        }
+
+        // Handle logo upload
+        if ( isset( $_FILES['nova_x_custom_logo'] ) && $_FILES['nova_x_custom_logo']['error'] === UPLOAD_ERR_OK ) {
+            $file = $_FILES['nova_x_custom_logo'];
+            
+            // Validate file type
+            $allowed_types = [ 'image/png', 'image/svg+xml' ];
+            $file_type = wp_check_filetype( $file['name'] );
+            $mime_type = $file['type'];
+            
+            if ( ! in_array( $mime_type, $allowed_types, true ) && ! in_array( $file_type['ext'], [ 'png', 'svg' ], true ) ) {
+                add_settings_error( 'nova_x_branding', 'invalid_file_type', esc_html__( 'Invalid file type. Please upload a PNG or SVG file.', 'nova-x' ), 'error' );
+                return;
+            }
+
+            // Validate file size (500KB max)
+            if ( $file['size'] > 500 * 1024 ) {
+                add_settings_error( 'nova_x_branding', 'file_too_large', esc_html__( 'File size exceeds 500KB limit.', 'nova-x' ), 'error' );
+                return;
+            }
+
+            // Create nova-x directory if it doesn't exist
+            if ( ! file_exists( $nova_x_dir ) ) {
+                if ( ! wp_mkdir_p( $nova_x_dir ) ) {
+                    error_log( '[Nova-X] Failed to create directory: ' . $nova_x_dir . ' — User ID: ' . get_current_user_id() );
+                    add_settings_error( 'nova_x_branding', 'dir_creation_failed', esc_html__( 'Failed to create upload directory.', 'nova-x' ), 'error' );
+                    return;
+                }
+                
+                // Add .htaccess for security
+                $htaccess_content = "Options -Indexes\n";
+                $htaccess_written = file_put_contents( $nova_x_dir . '/.htaccess', $htaccess_content );
+                if ( false === $htaccess_written ) {
+                    error_log( '[Nova-X] Failed to write .htaccess file: ' . $nova_x_dir . '/.htaccess — User ID: ' . get_current_user_id() );
+                }
+            }
+
+            // Handle SVG files differently
+            if ( $file_type['ext'] === 'svg' ) {
+                // For SVG, save with .svg extension
+                $target_path = $nova_x_dir . '/custom-logo.svg';
+                
+                // Basic SVG validation (check for XML and SVG tags)
+                $svg_content = file_get_contents( $file['tmp_name'] );
+                if ( false === $svg_content ) {
+                    error_log( '[Nova-X] Failed to read SVG file: ' . $file['tmp_name'] . ' — User ID: ' . get_current_user_id() );
+                    add_settings_error( 'nova_x_branding', 'read_failed', esc_html__( 'Failed to read uploaded file.', 'nova-x' ), 'error' );
+                    return;
+                }
+                
+                if ( strpos( $svg_content, '<svg' ) === false || ( strpos( $svg_content, '<?xml' ) === false && strpos( $svg_content, '<svg' ) === false ) ) {
+                    add_settings_error( 'nova_x_branding', 'invalid_svg', esc_html__( 'Invalid SVG file format.', 'nova-x' ), 'error' );
+                    return;
+                }
+                
+                if ( move_uploaded_file( $file['tmp_name'], $target_path ) ) {
+                    add_settings_error( 'nova_x_branding', 'logo_uploaded', esc_html__( 'Custom logo uploaded successfully.', 'nova-x' ), 'updated' );
+                } else {
+                    error_log( '[Nova-X] Failed to move uploaded file: ' . $file['tmp_name'] . ' to ' . $target_path . ' — User ID: ' . get_current_user_id() );
+                    add_settings_error( 'nova_x_branding', 'upload_failed', esc_html__( 'Failed to upload logo file.', 'nova-x' ), 'error' );
+                }
+            } else {
+                // For PNG, validate image and save
+                $image_info = getimagesize( $file['tmp_name'] );
+                if ( $image_info === false || $image_info['mime'] !== 'image/png' ) {
+                    add_settings_error( 'nova_x_branding', 'invalid_image', esc_html__( 'Invalid PNG image file.', 'nova-x' ), 'error' );
+                    return;
+                }
+
+                if ( move_uploaded_file( $file['tmp_name'], $custom_logo_path ) ) {
+                    add_settings_error( 'nova_x_branding', 'logo_uploaded', esc_html__( 'Custom logo uploaded successfully.', 'nova-x' ), 'updated' );
+                } else {
+                    error_log( '[Nova-X] Failed to move uploaded PNG file: ' . $file['tmp_name'] . ' to ' . $custom_logo_path . ' — User ID: ' . get_current_user_id() );
+                    add_settings_error( 'nova_x_branding', 'upload_failed', esc_html__( 'Failed to upload logo file.', 'nova-x' ), 'error' );
+                }
+            }
+        }
+    }
+
+    /**
      * Enqueue admin assets
      *
      * @param string $hook Current admin page hook.
@@ -190,25 +325,18 @@ class Nova_X_Admin {
             'nova-x_page_nova-x-license',
             'nova-x_page_nova-x-exports',
             'nova-x_page_nova-x-beta',
+            'nova-x_page_nova-x-test-notifier',
         ];
 
         if ( ! in_array( $hook, $nova_x_pages, true ) ) {
             return;
         }
 
-        // Enqueue global theme CSS (load first for variable definitions)
+        // Enqueue unified Nova-X CSS
         wp_enqueue_style(
-            'nova-x-global',
-            NOVA_X_URL . 'admin/assets/css/nova-x-global.css',
+            'nova-x',
+            NOVA_X_URL . 'admin/assets/css/nova-x.css',
             [],
-            $this->plugin_version
-        );
-
-        // Enqueue admin CSS
-        wp_enqueue_style(
-            'nova-x-admin-style',
-            NOVA_X_URL . 'admin/css/nova-x-admin.css',
-            [ 'nova-x-global' ],
             $this->plugin_version
         );
 
@@ -216,8 +344,17 @@ class Nova_X_Admin {
         wp_enqueue_style(
             'nova-x-notices',
             NOVA_X_URL . 'admin/assets/css/nova-x-notices.css',
-            [ 'nova-x-admin-style' ],
+            [ 'nova-x' ],
             $this->plugin_version
+        );
+
+        // Enqueue notices JS bridge for dynamic notices
+        wp_enqueue_script(
+            'nova-x-notices',
+            NOVA_X_URL . 'admin/assets/js/nova-x-notices.js',
+            [ 'jquery' ],
+            $this->plugin_version,
+            true
         );
 
         // Enqueue global theme toggle JS for all Nova-X pages
@@ -230,20 +367,13 @@ class Nova_X_Admin {
             true
         );
         
-        // Get theme preference from user meta (defaults to 'dark' if not set)
-        $default_theme = get_user_meta( get_current_user_id(), 'nova_x_theme_preference', true );
-        if ( empty( $default_theme ) ) {
-            $default_theme = 'dark';
-        }
-        
-        // Localize script to pass default theme to JavaScript
+        // Localize script to pass REST API data to JavaScript
         wp_localize_script(
             'nova-x-theme-toggle',
-            'novaXTheme',
+            'NovaXTheme',
             [
-                'defaultTheme' => $default_theme,
-                'restUrl'      => esc_url_raw( rest_url( 'nova-x/v1/' ) ),
-                'nonce'        => wp_create_nonce( 'wp_rest' ),
+                'restUrl' => esc_url_raw( rest_url( 'nova-x/v1/theme-preference' ) ),
+                'nonce'   => wp_create_nonce( 'wp_rest' ),
             ]
         );
 
@@ -270,20 +400,45 @@ class Nova_X_Admin {
                     'dashboardUrl'     => esc_url_raw( admin_url( 'admin.php?page=nova-x-dashboard' ) ),
                 ]
             );
+
+            // Localize editor data for Customize Output tab
+            wp_localize_script(
+                'nova-x-dashboard',
+                'NovaXEditorData',
+                [
+                    'rest_url' => esc_url_raw( rest_url( 'nova-x/v1/output-files' ) ),
+                    'nonce'    => wp_create_nonce( 'wp_rest' ),
+                ]
+            );
         }
 
-        // Enqueue settings JS for settings page
+        // Enqueue dashboard JS for settings page (uses same script as dashboard)
         if ( 'nova-x_page_nova-x-settings' === $hook ) {
             wp_enqueue_script(
-                'nova-x-admin',
-                NOVA_X_URL . 'assets/admin.js',
+                'nova-x-dashboard',
+                NOVA_X_URL . 'admin/js/nova-x-dashboard.js',
                 [ 'jquery' ],
                 $this->plugin_version,
                 true
             );
 
             wp_localize_script(
-                'nova-x-admin',
+                'nova-x-dashboard',
+                'novaXDashboard',
+                [
+                    'nonce'            => wp_create_nonce( 'wp_rest' ),
+                    'generateNonce'    => wp_create_nonce( 'nova_x_nonce' ),
+                    'restUrl'          => esc_url_raw( rest_url( 'nova-x/v1/' ) ),
+                    'generateThemeUrl' => esc_url_raw( rest_url( 'nova-x/v1/generate-theme' ) ),
+                    'previewThemeUrl'  => esc_url_raw( rest_url( 'nova-x/v1/preview-theme' ) ),
+                    'usageStatsUrl'    => esc_url_raw( rest_url( 'nova-x/v1/get-usage-stats' ) ),
+                    'dashboardUrl'     => esc_url_raw( admin_url( 'admin.php?page=nova-x-dashboard' ) ),
+                ]
+            );
+
+            // Localize NovaXData for settings page token rotation
+            wp_localize_script(
+                'nova-x-dashboard',
                 'NovaXData',
                 [
                     'nonce'            => wp_create_nonce( 'nova_x_nonce' ),
@@ -294,6 +449,28 @@ class Nova_X_Admin {
                     'installThemeUrl'  => esc_url_raw( rest_url( 'nova-x/v1/install-theme' ) ),
                     'resetTrackerUrl'  => esc_url_raw( rest_url( 'nova-x/v1/reset-usage-tracker' ) ),
                 ]
+            );
+        }
+
+        // Enqueue dashboard JS for architecture page (for placeholder interactions)
+        if ( 'nova-x_page_nova-x-architecture' === $hook ) {
+            wp_enqueue_script(
+                'nova-x-dashboard',
+                NOVA_X_URL . 'admin/js/nova-x-dashboard.js',
+                [ 'jquery' ],
+                $this->plugin_version,
+                true
+            );
+        }
+
+        // Enqueue dashboard JS for beta tools page (for placeholder interactions)
+        if ( 'nova-x_page_nova-x-beta' === $hook ) {
+            wp_enqueue_script(
+                'nova-x-dashboard',
+                NOVA_X_URL . 'admin/js/nova-x-dashboard.js',
+                [ 'jquery' ],
+                $this->plugin_version,
+                true
             );
         }
     }
@@ -514,28 +691,25 @@ class Nova_X_Admin {
             wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nova-x' ) );
         }
         
+        // Check if dev mode is enabled
+        if ( ! defined( 'NOVA_X_DEV_MODE' ) || ! NOVA_X_DEV_MODE ) {
+            wp_die( esc_html__( 'This feature is under development and currently disabled.', 'nova-x' ) );
+        }
+        
         // Load UI utilities
         $ui_utils_path = NOVA_X_PATH . 'admin/includes/ui-utils.php';
         if ( file_exists( $ui_utils_path ) ) {
             require_once $ui_utils_path;
         }
-        ?>
-        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap">
-            <?php
-            // Render unified header
-            if ( function_exists( 'render_plugin_header' ) ) {
-                render_plugin_header();
-            }
-            ?>
-            <div class="nova-x-page-content">
-                <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-                <p><?php esc_html_e( 'Manage theme architecture and building logic.', 'nova-x' ); ?></p>
-                <section class="nova-x-section nova-x-architecture-container">
-                    <p><?php esc_html_e( 'Architecture management features coming soon.', 'nova-x' ); ?></p>
-                </section>
-            </div>
-        </div>
-        <?php
+        
+        // Include the architecture page render file
+        $architecture_page_path = NOVA_X_PATH . 'admin/includes/pages/render_architecture_page.php';
+        if ( file_exists( $architecture_page_path ) ) {
+            include_once $architecture_page_path;
+        } else {
+            // Fallback if template doesn't exist
+            wp_die( esc_html__( 'Architecture page template not found.', 'nova-x' ) );
+        }
     }
 
     /**
@@ -551,39 +725,57 @@ class Nova_X_Admin {
         if ( file_exists( $ui_utils_path ) ) {
             require_once $ui_utils_path;
         }
+        
+        // Get theme preference (default to dark)
+        $theme = get_user_meta( get_current_user_id(), 'nova_x_theme_preference', true );
+        if ( empty( $theme ) ) {
+            $theme = 'dark';
+        }
+        
+        $dashboard_url = admin_url( 'admin.php?page=nova-x-dashboard' );
         ?>
-        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap">
-            <?php
-            // Render unified header
-            if ( function_exists( 'render_plugin_header' ) ) {
-                render_plugin_header();
-            }
-            ?>
-            <div class="nova-x-page-content">
-                <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-                <p><?php esc_html_e( 'Manage your Nova-X license key.', 'nova-x' ); ?></p>
-                <section class="nova-x-section nova-x-license-container">
-                    <form method="post" action="">
-                        <?php wp_nonce_field( 'nova_x_license_save', 'nova_x_license_nonce' ); ?>
-                        <table class="form-table">
-                            <tr>
-                                <th scope="row">
-                                    <label for="nova_x_license_key"><?php esc_html_e( 'License Key', 'nova-x' ); ?></label>
-                                </th>
-                                <td>
-                                    <input type="text" 
-                                           id="nova_x_license_key" 
-                                           name="license_key" 
-                                           class="regular-text" 
-                                           value="<?php echo esc_attr( get_option( 'nova_x_license_key', '' ) ); ?>" 
-                                           placeholder="<?php esc_attr_e( 'Enter your license key...', 'nova-x' ); ?>" />
-                                    <p class="description"><?php esc_html_e( 'Enter your Nova-X license key to activate premium features.', 'nova-x' ); ?></p>
-                                </td>
-                            </tr>
-                        </table>
-                        <?php submit_button( esc_html__( 'Save License', 'nova-x' ) ); ?>
-                    </form>
-                </section>
+        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap" data-theme="<?php echo esc_attr( $theme ); ?>">
+            <div id="nova-x-wrapper" class="nova-x-wrapper">
+                <div class="nova-x-dashboard-layout">
+                    <div class="nova-x-dashboard-main nova-x-main" id="nova-x-dashboard-main">
+                        <?php
+                        // Render unified header (fixed overlay)
+                        if ( function_exists( 'render_plugin_header' ) ) {
+                            render_plugin_header( [
+                                'notification_count' => 0,
+                                'dashboard_url'      => $dashboard_url,
+                            ] );
+                        }
+                        ?>
+                        
+                        <div class="nova-x-page-content">
+                            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+                            <p><?php esc_html_e( 'Manage your Nova-X license key.', 'nova-x' ); ?></p>
+                            <section class="nova-x-section nova-x-license-container">
+                                <form method="post" action="">
+                                    <?php wp_nonce_field( 'nova_x_license_save', 'nova_x_license_nonce' ); ?>
+                                    <table class="form-table">
+                                        <tr>
+                                            <th scope="row">
+                                                <label for="nova_x_license_key"><?php esc_html_e( 'License Key', 'nova-x' ); ?></label>
+                                            </th>
+                                            <td>
+                                                <input type="text" 
+                                                       id="nova_x_license_key" 
+                                                       name="license_key" 
+                                                       class="regular-text" 
+                                                       value="<?php echo esc_attr( get_option( 'nova_x_license_key', '' ) ); ?>" 
+                                                       placeholder="<?php esc_attr_e( 'Enter your license key...', 'nova-x' ); ?>" />
+                                                <p class="description"><?php esc_html_e( 'Enter your Nova-X license key to activate premium features.', 'nova-x' ); ?></p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    <?php submit_button( esc_html__( 'Save License', 'nova-x' ) ); ?>
+                                </form>
+                            </section>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <?php
@@ -602,20 +794,38 @@ class Nova_X_Admin {
         if ( file_exists( $ui_utils_path ) ) {
             require_once $ui_utils_path;
         }
+        
+        // Get theme preference (default to dark)
+        $theme = get_user_meta( get_current_user_id(), 'nova_x_theme_preference', true );
+        if ( empty( $theme ) ) {
+            $theme = 'dark';
+        }
+        
+        $dashboard_url = admin_url( 'admin.php?page=nova-x-dashboard' );
         ?>
-        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap">
-            <?php
-            // Render unified header
-            if ( function_exists( 'render_plugin_header' ) ) {
-                render_plugin_header();
-            }
-            ?>
-            <div class="nova-x-page-content">
-                <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-                <p><?php esc_html_e( 'View and manage your exported themes.', 'nova-x' ); ?></p>
-                <section class="nova-x-section nova-x-exports-container">
-                    <p><?php esc_html_e( 'Exported themes will appear here.', 'nova-x' ); ?></p>
-                </section>
+        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap" data-theme="<?php echo esc_attr( $theme ); ?>">
+            <div id="nova-x-wrapper" class="nova-x-wrapper">
+                <div class="nova-x-dashboard-layout">
+                    <div class="nova-x-dashboard-main nova-x-main" id="nova-x-dashboard-main">
+                        <?php
+                        // Render unified header (fixed overlay)
+                        if ( function_exists( 'render_plugin_header' ) ) {
+                            render_plugin_header( [
+                                'notification_count' => 0,
+                                'dashboard_url'      => $dashboard_url,
+                            ] );
+                        }
+                        ?>
+                        
+                        <div class="nova-x-page-content">
+                            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+                            <p><?php esc_html_e( 'View and manage your exported themes.', 'nova-x' ); ?></p>
+                            <section class="nova-x-section nova-x-exports-container">
+                                <p><?php esc_html_e( 'Exported themes will appear here.', 'nova-x' ); ?></p>
+                            </section>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <?php
@@ -629,40 +839,49 @@ class Nova_X_Admin {
             wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nova-x' ) );
         }
         
+        // Check if dev mode is enabled
+        if ( ! defined( 'NOVA_X_DEV_MODE' ) || ! NOVA_X_DEV_MODE ) {
+            wp_die( esc_html__( 'This feature is under development and currently disabled.', 'nova-x' ) );
+        }
+        
         // Load UI utilities
         $ui_utils_path = NOVA_X_PATH . 'admin/includes/ui-utils.php';
         if ( file_exists( $ui_utils_path ) ) {
             require_once $ui_utils_path;
         }
-        ?>
-        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap">
-            <?php
-            // Render unified header
-            if ( function_exists( 'render_plugin_header' ) ) {
-                render_plugin_header();
-            }
-            ?>
-            <div class="nova-x-page-content">
-                <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-                <p><?php esc_html_e( 'Beta tools and experimental features.', 'nova-x' ); ?></p>
-                <?php echo Nova_X_Notifier::warning( '<strong>' . esc_html__( 'Warning:', 'nova-x' ) . '</strong> ' . esc_html__( 'These are beta features and may be unstable. Use at your own risk.', 'nova-x' ) ); ?>
-                <div class="nova-x-beta-container">
-                    <p><?php esc_html_e( 'Beta tools coming soon.', 'nova-x' ); ?></p>
-                </div>
-            </div>
-        </div>
-        <?php
+        
+        // Include the beta page render file
+        $beta_page_path = NOVA_X_PATH . 'admin/includes/pages/render_beta_page.php';
+        if ( file_exists( $beta_page_path ) ) {
+            include_once $beta_page_path;
+        } else {
+            // Fallback if template doesn't exist
+            wp_die( esc_html__( 'Beta Tools page template not found.', 'nova-x' ) );
+        }
     }
 
     /**
      * Render admin settings page
      */
     public function render_settings_page() {
+        // Handle branding form submission
+        if ( isset( $_POST['save_branding'] ) && isset( $_POST['nova_x_branding_nonce'] ) && wp_verify_nonce( $_POST['nova_x_branding_nonce'], 'nova_x_branding_save' ) ) {
+            $this->handle_branding_save();
+        }
+        
         // Load UI utilities
         $ui_utils_path = NOVA_X_PATH . 'admin/includes/ui-utils.php';
         if ( file_exists( $ui_utils_path ) ) {
             require_once $ui_utils_path;
         }
+        
+        // Get theme preference (default to dark)
+        $theme = get_user_meta( get_current_user_id(), 'nova_x_theme_preference', true );
+        if ( empty( $theme ) ) {
+            $theme = 'dark';
+        }
+        
+        $dashboard_url = admin_url( 'admin.php?page=nova-x-dashboard' );
         ?>
         <style>
             .fade-success {
@@ -682,14 +901,21 @@ class Nova_X_Admin {
                 visibility: visible;
             }
         </style>
-        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap">
-            <?php
-            // Render unified header
-            if ( function_exists( 'render_plugin_header' ) ) {
-                render_plugin_header();
-            }
-            ?>
-            <div class="nova-x-page-content">
+        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap" data-theme="<?php echo esc_attr( $theme ); ?>">
+            <div id="nova-x-wrapper" class="nova-x-wrapper">
+                <div class="nova-x-dashboard-layout">
+                    <div class="nova-x-dashboard-main nova-x-main" id="nova-x-dashboard-main">
+                        <?php
+                        // Render unified header (fixed overlay)
+                        if ( function_exists( 'render_plugin_header' ) ) {
+                            render_plugin_header( [
+                                'notification_count' => 0,
+                                'dashboard_url'      => $dashboard_url,
+                            ] );
+                        }
+                        ?>
+                        
+                        <div class="nova-x-page-content">
                 <h1>Nova-X Settings</h1>
                 
                 <section class="nova-x-section">
@@ -733,6 +959,53 @@ class Nova_X_Admin {
                             </tr>
                         </table>
                         <?php submit_button( esc_html__( 'Save Settings', 'nova-x' ) ); ?>
+                    </form>
+                </section>
+
+                <section class="nova-x-section">
+                    <h2><?php esc_html_e( 'Branding', 'nova-x' ); ?></h2>
+                    <form method="post" action="" enctype="multipart/form-data">
+                        <?php wp_nonce_field( 'nova_x_branding_save', 'nova_x_branding_nonce' ); ?>
+                        <table class="form-table">
+                            <tr>
+                                <th scope="row"><?php esc_html_e( 'Custom Logo', 'nova-x' ); ?></th>
+                                <td>
+                                    <?php
+                                    $upload_dir = wp_upload_dir();
+                                    $nova_x_dir = $upload_dir['basedir'] . '/nova-x';
+                                    $custom_logo_png_path = $nova_x_dir . '/custom-logo.png';
+                                    $custom_logo_svg_path = $nova_x_dir . '/custom-logo.svg';
+                                    $custom_logo_png_url = $upload_dir['baseurl'] . '/nova-x/custom-logo.png';
+                                    $custom_logo_svg_url = $upload_dir['baseurl'] . '/nova-x/custom-logo.svg';
+                                    $has_custom_logo_png = file_exists( $custom_logo_png_path );
+                                    $has_custom_logo_svg = file_exists( $custom_logo_svg_path );
+                                    $has_custom_logo = $has_custom_logo_png || $has_custom_logo_svg;
+                                    ?>
+                                    <?php if ( $has_custom_logo ) : ?>
+                                        <div style="margin-bottom: 15px;">
+                                            <?php if ( $has_custom_logo_svg ) : ?>
+                                                <img src="<?php echo esc_url( $custom_logo_svg_url ); ?>" alt="Custom Logo Preview" style="max-width: 200px; height: auto; border: 1px solid #ddd; padding: 5px; background: #fff;" />
+                                            <?php else : ?>
+                                                <img src="<?php echo esc_url( $custom_logo_png_url ); ?>" alt="Custom Logo Preview" style="max-width: 200px; height: auto; border: 1px solid #ddd; padding: 5px; background: #fff;" />
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <input type="file" name="nova_x_custom_logo" id="nova_x_custom_logo" accept=".png,.svg" />
+                                    <p class="description">
+                                        <?php esc_html_e( 'Upload a custom logo (PNG or SVG, max 500KB). The logo will be displayed in the plugin header.', 'nova-x' ); ?>
+                                    </p>
+                                    <?php if ( $has_custom_logo ) : ?>
+                                        <p>
+                                            <label>
+                                                <input type="checkbox" name="nova_x_remove_logo" value="1" />
+                                                <?php esc_html_e( 'Remove custom logo and use default', 'nova-x' ); ?>
+                                            </label>
+                                        </p>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        </table>
+                        <?php submit_button( esc_html__( 'Save Branding', 'nova-x' ), 'secondary', 'save_branding' ); ?>
                     </form>
                 </section>
 
@@ -804,8 +1077,176 @@ class Nova_X_Admin {
                         <span id="nova_x_reset_status" style="margin-left: 10px; font-weight: bold;"></span>
                     </p>
                 </section>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+        <?php
+    }
+
+    /**
+     * Display admin notices globally
+     * 
+     * This hook allows notices to be displayed on all admin pages if needed.
+     * Notices are typically displayed inline where Nova_X_Notifier methods are called.
+     */
+    public function display_admin_notices() {
+        // Only display on Nova-X admin pages
+        $screen = get_current_screen();
+        if ( ! $screen || strpos( $screen->id, 'nova-x' ) === false ) {
+            return;
+        }
+
+        // Ensure Nova_X_Notifier class is available
+        if ( ! class_exists( 'Nova_X_Notifier' ) ) {
+            return;
+        }
+
+        // Display any stored persistent notices here if needed
+        // For now, notices are displayed inline where methods are called
+    }
+
+    /**
+     * Render test notifier page (for development/testing)
+     */
+    public function render_test_notifier_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nova-x' ) );
+        }
+
+        // Ensure Nova_X_Notifier class is available
+        if ( ! class_exists( 'Nova_X_Notifier' ) ) {
+            // Load UI utilities which should include the notifier
+            $ui_utils_path = NOVA_X_PATH . 'admin/includes/ui-utils.php';
+            if ( file_exists( $ui_utils_path ) ) {
+                require_once $ui_utils_path;
+            }
+            
+            // If still not available, show error notice
+            if ( ! class_exists( 'Nova_X_Notifier' ) ) {
+                echo '<div class="notice notice-error"><p>' . esc_html__( 'Nova_X_Notifier class is not available. Please check plugin installation.', 'nova-x' ) . '</p></div>';
+                return;
+            }
+        }
+
+        // Load UI utilities
+        $ui_utils_path = NOVA_X_PATH . 'admin/includes/ui-utils.php';
+        if ( file_exists( $ui_utils_path ) ) {
+            require_once $ui_utils_path;
+        }
+        
+        // Get theme preference (default to dark)
+        $theme = get_user_meta( get_current_user_id(), 'nova_x_theme_preference', true );
+        if ( empty( $theme ) ) {
+            $theme = 'dark';
+        }
+        
+        $dashboard_url = admin_url( 'admin.php?page=nova-x-dashboard' );
+        ?>
+        <div class="wrap nova-x-wrapper nova-x-dashboard-wrap" data-theme="<?php echo esc_attr( $theme ); ?>">
+            <div id="nova-x-wrapper" class="nova-x-wrapper">
+                <div class="nova-x-dashboard-layout">
+                    <div class="nova-x-dashboard-main nova-x-main" id="nova-x-dashboard-main">
+                        <?php
+                        // Render unified header (fixed overlay)
+                        if ( function_exists( 'render_plugin_header' ) ) {
+                            render_plugin_header( [
+                                'notification_count' => 0,
+                                'dashboard_url'      => $dashboard_url,
+                            ] );
+                        }
+                        ?>
+                        
+                        <div class="nova-x-page-content">
+                            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+                            <p><?php esc_html_e( 'Test page for Nova_X_Notifier functionality.', 'nova-x' ); ?></p>
+                
+                <section class="nova-x-section">
+                    <h2><?php esc_html_e( 'PHP Notices (Server-side)', 'nova-x' ); ?></h2>
+                    <p><?php esc_html_e( 'These notices are generated using Nova_X_Notifier PHP methods:', 'nova-x' ); ?></p>
+                    
+                    <?php
+                    // Test success notice
+                    echo Nova_X_Notifier::success( 'Test Success: This is a success notice generated from PHP.' );
+                    
+                    // Test error notice
+                    echo Nova_X_Notifier::error( 'Test Error: This is an error notice generated from PHP.' );
+                    ?>
+                    
+                    <h3><?php esc_html_e( 'Test Buttons', 'nova-x' ); ?></h3>
+                    <p>
+                        <button type="button" class="button button-primary" id="test-success-js">
+                            <?php esc_html_e( 'Test Success (JS)', 'nova-x' ); ?>
+                        </button>
+                        <button type="button" class="button button-secondary" id="test-error-js">
+                            <?php esc_html_e( 'Test Error (JS)', 'nova-x' ); ?>
+                        </button>
+                        <button type="button" class="button button-secondary" id="test-info-js">
+                            <?php esc_html_e( 'Test Info (JS)', 'nova-x' ); ?>
+                        </button>
+                        <button type="button" class="button button-secondary" id="test-warning-js">
+                            <?php esc_html_e( 'Test Warning (JS)', 'nova-x' ); ?>
+                        </button>
+                        <button type="button" class="button" id="test-clear-js">
+                            <?php esc_html_e( 'Clear All Notices', 'nova-x' ); ?>
+                        </button>
+                    </p>
+                </section>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            // Test Success
+            $('#test-success-js').on('click', function() {
+                if (typeof NovaXNotices !== 'undefined') {
+                    NovaXNotices.success('Test Success: This is a success notice generated from JavaScript.');
+                } else {
+                    alert('NovaXNotices is not available. Make sure nova-x-notices.js is loaded.');
+                }
+            });
+            
+            // Test Error
+            $('#test-error-js').on('click', function() {
+                if (typeof NovaXNotices !== 'undefined') {
+                    NovaXNotices.error('Test Error: This is an error notice generated from JavaScript.');
+                } else {
+                    alert('NovaXNotices is not available. Make sure nova-x-notices.js is loaded.');
+                }
+            });
+            
+            // Test Info
+            $('#test-info-js').on('click', function() {
+                if (typeof NovaXNotices !== 'undefined') {
+                    NovaXNotices.info('Test Info: This is an info notice generated from JavaScript.');
+                } else {
+                    alert('NovaXNotices is not available. Make sure nova-x-notices.js is loaded.');
+                }
+            });
+            
+            // Test Warning
+            $('#test-warning-js').on('click', function() {
+                if (typeof NovaXNotices !== 'undefined') {
+                    NovaXNotices.warning('Test Warning: This is a warning notice generated from JavaScript.');
+                } else {
+                    alert('NovaXNotices is not available. Make sure nova-x-notices.js is loaded.');
+                }
+            });
+            
+            // Clear All
+            $('#test-clear-js').on('click', function() {
+                if (typeof NovaXNotices !== 'undefined') {
+                    NovaXNotices.clear();
+                } else {
+                    alert('NovaXNotices is not available. Make sure nova-x-notices.js is loaded.');
+                }
+            });
+        });
+        </script>
         <?php
     }
 }

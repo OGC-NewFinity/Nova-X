@@ -21,6 +21,12 @@ define( 'NOVA_X_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NOVA_X_URL', plugin_dir_url( __FILE__ ) );
 define( 'NOVA_X_SUPPORTED_PROVIDERS', [ 'openai', 'anthropic', 'groq', 'mistral', 'gemini', 'claude', 'cohere' ] );
 
+// Development Mode Toggle
+// Set to false to hide dev-only features (Architecture, Beta Tools) in production
+if ( ! defined( 'NOVA_X_DEV_MODE' ) ) {
+    define( 'NOVA_X_DEV_MODE', true ); // Change to false on release
+}
+
 // Master encryption key for API key storage (never expose to frontend)
 // Generate a secure random key: openssl rand -hex 32
 if ( ! defined( 'NOVA_X_ENCRYPTION_KEY' ) ) {
@@ -49,6 +55,10 @@ final class Nova_X_Core {
         // Initialize Admin class if in admin area
         if ( is_admin() ) {
             new Nova_X_Admin( NOVA_X_VERSION );
+            
+            // Initialize Settings class for new multi-provider settings page
+            require_once NOVA_X_PATH . 'admin/class-nova-x-settings.php';
+            new Nova_X_Settings();
         }
     }
 
@@ -61,7 +71,9 @@ final class Nova_X_Core {
         
         // Load Classes (using the lowercase folder 'classes')
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-token-manager.php';
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-provider-rules.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-provider-manager.php';
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-provider-factory.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-ai-engine.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-rest.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-generator.php';
@@ -70,13 +82,32 @@ final class Nova_X_Core {
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-usage-tracker.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-notifier.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-admin.php';
+        
+        // Load Authentication class
+        require_once NOVA_X_PATH . 'admin/class-nova-x-auth.php';
+        
         // Initialize REST API
         new Nova_X_REST();
+        
+        // Initialize Authentication
+        new Nova_X_Auth();
     }
 
     private function hooks() {
         // Menu registration is now handled in Nova_X_Admin class
         // Script enqueuing is also handled in Nova_X_Admin class
+        
+        // Enable session support for authentication
+        add_action( 'init', [ $this, 'start_session' ] );
+    }
+
+    /**
+     * Start PHP session if not already started
+     */
+    public function start_session() {
+        if ( ! session_id() ) {
+            session_start();
+        }
     }
 
     public function enqueue_admin_assets( $hook ) {
@@ -122,39 +153,6 @@ final class Nova_X_Core {
         }
     }
 
-    /**
-     * Enqueue admin settings JavaScript
-     *
-     * @param string $hook Current admin page hook.
-     */
-    public function enqueue_settings_script( $hook ) {
-        // Only load on Nova-X settings submenu page
-        if ( 'nova-x_page_nova-x-settings' !== $hook ) {
-            return;
-        }
-
-        wp_enqueue_script(
-            'nova-x-admin',
-            NOVA_X_URL . 'assets/admin.js',
-            [ 'jquery' ],
-            NOVA_X_VERSION,
-            true
-        );
-
-        wp_localize_script(
-            'nova-x-admin',
-            'NovaXData',
-            [
-                'nonce'                => wp_create_nonce( 'nova_x_nonce' ),
-                'restUrl'              => esc_url_raw( rest_url( 'nova-x/v1/generate-theme' ) ),
-                'rotateTokenUrl'       => esc_url_raw( rest_url( 'nova-x/v1/rotate-token' ) ),
-                'exportThemeUrl'       => esc_url_raw( rest_url( 'nova-x/v1/export-theme' ) ),
-                'previewThemeUrl'      => esc_url_raw( rest_url( 'nova-x/v1/preview-theme' ) ),
-                'installThemeUrl'      => esc_url_raw( rest_url( 'nova-x/v1/install-theme' ) ),
-                'resetTrackerUrl'      => esc_url_raw( rest_url( 'nova-x/v1/reset-usage-tracker' ) ),
-            ]
-        );
-    }
 }
 
 // Ignite the engine

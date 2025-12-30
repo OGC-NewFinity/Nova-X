@@ -1,5 +1,7 @@
 /**
- * Nova-X Admin Styles
+ * Nova-X Unified Styles
+ * 
+ * Consolidated CSS file combining global theme variables and admin-specific styles
  * 
  * @package Nova-X
  * 
@@ -7,7 +9,54 @@
  */
 
 /* ========================================
-   Theme Variables - Dark Mode (Neon Crystal)
+   Core Theme Variables - Light Mode (Default)
+   ======================================== */
+
+:root {
+    /* Core Colors */
+    --bg-0: #F4FBFF;
+    --bg-1: #ffffff;
+    --text-primary: #0B0F14;
+    --surface-1: #ffffff;
+    --border-color: #DDEAF2;
+    --accent: #6EF3E6;
+    
+    /* Extended Theme Variables */
+    --surface-0: rgba(11,15,20,0.03);
+    --text-0: #0B0F14;
+    --text-1: rgba(11,15,20,0.78);
+    --text-2: rgba(11,15,20,0.56);
+    
+    /* Accents */
+    --primary: #22CFC0;
+    --secondary: #1BA8FF;
+    --accent: #9B5CFF;
+    --accent-2: #FF6FC6;
+    
+    /* Borders */
+    --border-0: rgba(11,15,20,0.10);
+    --border-1: rgba(34,207,192,0.22);
+    
+    /* Gradients */
+    --grad-primary: linear-gradient(135deg,rgba(110,243,230,0.55),rgba(79,209,255,0.45),rgba(199,125,255,0.40));
+    --grad-secondary: linear-gradient(135deg,rgba(79,209,255,0.40),rgba(255,158,219,0.35));
+    --grad-surface: linear-gradient(180deg,rgba(79,209,255,0.14),rgba(199,125,255,0.10));
+    
+    /* Effects */
+    --glow-primary: rgba(34,207,192,0.20);
+    --glow-accent: rgba(155,92,255,0.18);
+    --shadow-soft: 0 10px 28px rgba(11,15,20,0.12);
+    
+    /* Spacing System */
+    --spacing-0: 0px;
+    --spacing-small: 12px;
+    --spacing-base: 24px;
+    --spacing-large: 48px;
+    --header-height: 60px;
+}
+
+/* ========================================
+   Core Theme Variables - Dark Mode
    ======================================== */
 
 [data-theme="dark"],
@@ -49,7 +98,7 @@ html[data-theme="dark"] {
 }
 
 /* ========================================
-   Theme Variables - Light Mode (Crystal Glass)
+   Core Theme Variables - Light Mode
    ======================================== */
 
 [data-theme="light"],
@@ -90,46 +139,10 @@ html[data-theme="light"] {
     --shadow-soft: 0 10px 28px rgba(11,15,20,0.12);
 }
 
-/* ========================================
-   Default Theme Variables (Light Mode)
-   ======================================== */
-
-:root {
-    /* Core Colors - Light Mode Default */
-    --bg-0: #F4FBFF;
-    --bg-1: #ffffff;
-    --text-primary: #0B0F14;
-    --surface-1: #ffffff;
-    --border-color: #DDEAF2;
-    --accent: #6EF3E6;
-    
-    /* Extended Theme Variables */
-    --surface-0: rgba(11,15,20,0.03);
-    --text-0: #0B0F14;
-    --text-1: rgba(11,15,20,0.78);
-    --text-2: rgba(11,15,20,0.56);
-    
-    /* Accents */
-    --primary: #22CFC0;
-    --secondary: #1BA8FF;
-    --accent: #9B5CFF;
-    --accent-2: #FF6FC6;
-    
-    /* Borders */
-    --border-0: rgba(11,15,20,0.10);
-    --border-1: rgba(34,207,192,0.22);
-    
-    /* Gradients */
-    --grad-primary: linear-gradient(135deg,rgba(110,243,230,0.55),rgba(79,209,255,0.45),rgba(199,125,255,0.40));
-    --grad-secondary: linear-gradient(135deg,rgba(79,209,255,0.40),rgba(255,158,219,0.35));
-    --grad-surface: linear-gradient(180deg,rgba(79,209,255,0.14),rgba(199,125,255,0.10));
-    
-    /* Effects */
-    --glow-primary: rgba(34,207,192,0.20);
-    --glow-accent: rgba(155,92,255,0.18);
-    --shadow-soft: 0 10px 28px rgba(11,15,20,0.12);
-    
-    /* Layout & Spacing - Now defined in nova-x-global.css */
+/* Ensure theme applies to body and html */
+body[data-theme],
+html[data-theme] {
+    color-scheme: light dark;
 }
 
 /* ========================================
@@ -142,6 +155,12 @@ html[data-theme="light"] {
     font-weight: 400;
     background: var(--bg-0);
     color: var(--text-0);
+}
+
+.nova-x-dashboard-wrap,
+.nova-x-page-content {
+    color: var(--text-primary);
+    background-color: var(--bg-0);
 }
 
 /* Wrapper - no margins or padding, stretches edge-to-edge */
@@ -168,13 +187,15 @@ html[data-theme="light"] {
     flex-direction: column;
     flex: 1;
     min-width: 0;
+    margin-left: 0;
+    transition: margin-left 0.3s ease;
 }
 
 /* Ensure admin notices are positioned correctly */
 .nova-x-dashboard-wrap .notice,
 .nova-x-dashboard-wrap .updated,
 .nova-x-dashboard-wrap .error {
-    margin-top: 0; /* Notices are now inside nova-x-page-content */
+    margin-top: 0;
     margin-left: 0;
     margin-right: 0;
     margin-bottom: var(--spacing-small);
@@ -194,13 +215,142 @@ html[data-theme="light"] {
     width: 100%;
 }
 
-.nova-x-dashboard-main {
-    flex: 1;
-    min-width: 0; /* Prevents flex item from overflowing */
-    margin-left: 0;
-    transition: margin-left 0.3s ease;
-    display: flex;
-    flex-direction: column;
+/* Standardized Headings */
+.nova-x-dashboard-wrap h1,
+.nova-x-dashboard-wrap h2,
+.nova-x-dashboard-wrap h3 {
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.nova-x-dashboard-wrap h1 {
+    font-size: 28px;
+    margin-bottom: 24px;
+}
+
+.nova-x-dashboard-wrap h2 {
+    font-size: 24px;
+    margin-bottom: 16px;
+}
+
+.nova-x-dashboard-wrap h3 {
+    font-size: 18px;
+    margin-bottom: 12px;
+}
+
+/* Standardized Paragraphs */
+.nova-x-dashboard-wrap p {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+/* Standardized Inputs */
+.nova-x-dashboard-wrap input[type="text"],
+.nova-x-dashboard-wrap input[type="email"],
+.nova-x-dashboard-wrap input[type="password"],
+.nova-x-dashboard-wrap textarea,
+.nova-x-dashboard-wrap select {
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-1);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.nova-x-dashboard-wrap input:focus,
+.nova-x-dashboard-wrap textarea:focus,
+.nova-x-dashboard-wrap select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(110, 243, 230, 0.1);
+}
+
+/* Standardized Buttons */
+.nova-x-dashboard-wrap .button,
+.nova-x-dashboard-wrap button {
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.nova-x-dashboard-wrap .button:focus,
+.nova-x-dashboard-wrap button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(110, 243, 230, 0.2);
+}
+
+/* Standardized Cards/Sections */
+.nova-x-section,
+.nova-x-card {
+    background-color: var(--surface-1);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-soft);
+}
+
+/* Cards Grid Layout */
+.nova-x-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-base);
+    margin-top: var(--spacing-base);
+}
+
+/* Card Styling */
+.nova-x-card {
+    padding: var(--spacing-base);
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nova-x-card:hover:not(.disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+}
+
+.nova-x-card.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.nova-x-card h3 {
+    margin-top: 0;
+    margin-bottom: var(--spacing-small);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.nova-x-card p {
+    margin-bottom: 0;
+    color: var(--text-1);
+    line-height: 1.6;
+}
+
+/* Muted Text */
+.nova-x-muted {
+    color: var(--text-2);
+    font-size: 14px;
+    margin-bottom: var(--spacing-base);
+}
+
+/* Badge Variants */
+.nova-x-badge.beta {
+    position: relative;
+    top: auto;
+    right: auto;
+    display: inline-block;
+    margin-top: var(--spacing-small);
+    background: var(--accent-1);
+    color: var(--text-0);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 /* ========================================
@@ -215,11 +365,11 @@ html[data-theme="light"] {
     display: flex;
     flex-direction: column;
     position: sticky;
-    top: 32px; /* aligns with header overlay top edge */
+    top: 32px;
     height: calc(100vh - 32px);
     overflow-y: auto;
     overflow-x: hidden;
-    transition: width 0.3s ease; /* match header transition timing */
+    transition: width 0.3s ease;
     z-index: 1001;
     box-shadow: var(--shadow-soft);
     box-sizing: border-box;
@@ -462,15 +612,15 @@ html[data-theme="light"] {
 /* Fixed Header Overlay - scoped to Dashboard layout */
 .nova-x-dashboard-layout .nova-x-header-overlay {
     position: fixed;
-    top: 32px; /* below WordPress admin bar - aligns perfectly with sidebar top edge */
-    left: 240px; /* matches sidebar width when expanded */
+    top: 32px;
+    left: 240px;
     right: 0;
     height: var(--header-height);
     z-index: 1000;
     background-color: var(--bg-0);
     border-bottom: 1px solid var(--border-0);
-    border-top: none; /* No top border to ensure seamless alignment with sidebar */
-    transition: left 0.3s ease; /* Smooth transition matches sidebar width transition */
+    border-top: none;
+    transition: left 0.3s ease;
     display: flex;
     align-items: stretch;
     box-sizing: border-box;
@@ -478,7 +628,7 @@ html[data-theme="light"] {
 
 /* Header overlay adjusts when sidebar is collapsed - using sibling selector */
 .nova-x-dashboard-layout .nova-x-sidebar.collapsed ~ .nova-x-dashboard-main .nova-x-header-overlay {
-    left: 60px; /* matches collapsed sidebar width - ensures perfect alignment */
+    left: 60px;
 }
 
 /* Ensure header overlay doesn't overlap sidebar toggle button */
@@ -486,8 +636,6 @@ html[data-theme="light"] {
     z-index: 1002;
     position: relative;
 }
-
-/* Adjust for collapsed sidebar - handled by JS */
 
 /* Unified Header Bar - scoped to Dashboard layout */
 .nova-x-dashboard-layout .nova-x-header-bar {
@@ -548,6 +696,16 @@ html[data-theme="light"] {
     max-width: 200px;
     object-fit: contain;
     display: block;
+}
+
+.nova-x-logo-fallback {
+    font-size: 26px;
+    width: 26px;
+    height: 26px;
+    line-height: 26px;
+    display: none;
+    vertical-align: middle;
+    color: var(--text-1, #2c3338);
 }
 
 .nova-x-profile-link {
@@ -874,142 +1032,9 @@ html[data-theme="light"] {
     pointer-events: none;
 }
 
-/* Responsive Header */
-@media (max-width: 782px) {
-    .nova-x-dashboard-layout .nova-x-header-overlay {
-        left: 0 !important; /* Full width on mobile */
-        height: auto;
-        min-height: var(--header-height);
-    }
-    
-    .nova-x-dashboard-layout .nova-x-header-bar {
-        flex-direction: row;
-        align-items: center;
-        padding: 12px 15px;
-        height: auto;
-        min-height: var(--header-height);
-    }
-    
-    .nova-x-dashboard-layout .nova-x-header-right {
-        width: auto;
-        justify-content: flex-end;
-        margin-top: 0;
-        gap: 12px;
-        flex-wrap: nowrap;
-    }
-    
-    .nova-x-page-content {
-        margin-top: calc(var(--header-height) + var(--spacing-base));
-        padding: var(--spacing-base);
-    }
-    
-    .nova-x-dashboard-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .header-controls {
-        width: auto;
-        justify-content: flex-end;
-        margin-left: 0;
-        margin-top: 0;
-        gap: 12px;
-        flex-wrap: nowrap;
-    }
-    
-    .nova-x-header-logo {
-        height: 24px;
-    }
-    
-    .nova-x-dropdown-menu {
-        right: auto;
-        left: 0;
-    }
-    
-    .nova-x-notifications-dropdown .nova-x-dropdown-menu {
-        right: 0;
-        left: auto;
-    }
-}
-
-@media (max-width: 600px) {
-    .nova-x-dashboard-layout .nova-x-header-bar {
-        flex-wrap: wrap;
-        gap: 12px;
-    }
-    
-    .nova-x-dashboard-layout .nova-x-header-right {
-        width: 100%;
-        justify-content: flex-end;
-        margin-top: 8px;
-        gap: 10px;
-    }
-    
-    .nova-x-dashboard-layout .header-controls {
-        width: 100%;
-        justify-content: flex-end;
-        margin-top: 8px;
-        gap: 10px;
-    }
-}
-
-@media (max-width: 480px) {
-    .nova-x-dashboard-layout .nova-x-header-bar {
-        padding: 10px 12px;
-        gap: 10px;
-    }
-    
-    .nova-x-dashboard-layout .nova-x-header-right {
-        gap: 8px;
-    }
-    
-    .nova-x-dashboard-layout .header-controls {
-        gap: 8px;
-    }
-    
-    .icon-button {
-        width: 36px;
-        height: 36px;
-        min-width: 36px;
-        min-height: 36px;
-        max-width: 36px;
-        max-height: 36px;
-    }
-    
-    .icon-button svg {
-        width: 18px;
-        height: 18px;
-        min-width: 18px;
-        min-height: 18px;
-    }
-    
-    .btn-upgrade {
-        padding: 6px 12px;
-        font-size: 13px;
-        height: 36px;
-        min-height: 36px;
-    }
-    
-    .btn-upgrade svg {
-        width: 18px;
-        height: 18px;
-        min-width: 18px;
-        min-height: 18px;
-    }
-    
-    .nova-x-header-logo {
-        height: 22px;
-    }
-    
-    .nova-x-dropdown-menu {
-        min-width: 200px;
-        max-width: calc(100vw - 40px);
-    }
-}
-
 /* Top Nav Tabs (for mobile/backward compatibility) */
 .nova-x-top-nav {
-    display: none; /* Hidden by default, shown on mobile */
+    display: none;
 }
 
 /* Loading state for tab content */
@@ -1031,98 +1056,6 @@ html[data-theme="light"] {
     border-top: 4px solid var(--primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
-}
-
-
-/* Responsive: Collapse sidebar on small screens */
-@media (max-width: 782px) {
-    .nova-x-dashboard-layout {
-        flex-direction: column;
-    }
-
-    .nova-x-dashboard-layout .nova-x-sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        top: 0;
-        border-right: none;
-        border-bottom: 1px solid var(--border-0);
-        max-height: 200px;
-        overflow-y: auto;
-        transition: max-height 0.2s ease;
-    }
-
-    .nova-x-dashboard-layout .nova-x-sidebar.collapsed {
-        max-height: 60px;
-        overflow: hidden;
-    }
-
-    .nova-x-dashboard-main {
-        margin-left: 0;
-    }
-
-    .nova-x-top-nav {
-        display: block;
-        margin-top: var(--spacing-small);
-    }
-
-    .nova-x-dashboard-layout .nova-x-toggle-btn {
-        display: flex; /* Show toggle on mobile */
-    }
-    
-    /* Reduce section spacing on mobile */
-    .nova-x-section {
-        margin-bottom: 24px;
-        padding: 16px;
-    }
-    
-    .nova-x-tab-pane h2,
-    .nova-x-section h2 {
-        font-size: 20px;
-        margin-bottom: 12px;
-    }
-    
-    .nova-x-tab-pane h3,
-    .nova-x-section h3 {
-        font-size: 16px;
-        margin-bottom: 12px;
-    }
-}
-
-/* Very small screens */
-@media (max-width: 480px) {
-    .nova-x-sidebar {
-        max-height: 150px;
-    }
-
-    .nova-x-sidebar-link {
-        padding: 10px 15px;
-        font-size: 14px;
-    }
-
-    .nova-x-sidebar-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-    }
-    
-    .nova-x-page-content {
-        padding: var(--spacing-base);
-        margin-top: calc(var(--header-height) + var(--spacing-base));
-    }
-    
-    .nova-x-section {
-        margin-bottom: var(--spacing-base);
-        padding: var(--spacing-small);
-        border-radius: 8px;
-    }
-}
-
-.nova-x-dashboard-wrap h1 {
-    margin-bottom: 20px;
-    font-size: 28px;
-    font-weight: 600;
-    color: var(--text-primary);
 }
 
 /* ========================================
@@ -1165,7 +1098,6 @@ html[data-theme="light"] {
     box-shadow: 0 -1px 0 var(--bg-0);
     font-weight: 500;
 }
-
 
 /* ========================================
    Tab Content
@@ -1248,7 +1180,6 @@ html[data-theme="light"] {
     color: var(--text-primary);
     margin-bottom: 0;
 }
-
 
 /* ========================================
    Forms & Inputs
@@ -1395,7 +1326,6 @@ html[data-theme="light"] {
     padding-left: 40px;
 }
 
-
 /* ========================================
    Status Messages
    ======================================== */
@@ -1485,13 +1415,8 @@ html[data-theme="light"] {
 }
 
 .nova-x-dashboard-wrap .button-secondary:focus:not(:disabled) {
-    box-shadow: 0 0 0 3px rgba(110, 243, 230, 0.1);
-}
-
-.nova-x-dashboard-wrap .button-secondary:focus:not(:disabled) {
     box-shadow: 0 0 0 2px var(--glow-accent);
 }
-
 
 /* ========================================
    Loaders & Spinners
@@ -1523,7 +1448,6 @@ html[data-theme="light"] {
     float: none;
     margin: 0 5px 0 0;
 }
-
 
 /* ========================================
    Usage Stats Widgets
@@ -1584,7 +1508,6 @@ html[data-theme="light"] {
     background-clip: text;
 }
 
-
 /* ========================================
    Usage Stats Table
    ======================================== */
@@ -1630,7 +1553,6 @@ html[data-theme="light"] {
     color: var(--text-2);
 }
 
-
 /* ========================================
    Usage Stats Actions
    ======================================== */
@@ -1660,7 +1582,6 @@ html[data-theme="light"] {
 .nova-x-usage-actions .button:active:not(:disabled) {
     transform: translateY(0);
 }
-
 
 /* ========================================
    Usage Stats Loader
@@ -1867,7 +1788,6 @@ html[data-theme="light"] {
     flex-wrap: wrap;
 }
 
-
 /* ========================================
    Generate Theme Panel
    ======================================== */
@@ -1875,7 +1795,6 @@ html[data-theme="light"] {
 .nova-x-generate-form {
     margin-top: 20px;
 }
-
 
 .nova-x-generate-form textarea {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
@@ -1900,6 +1819,7 @@ html[data-theme="light"] {
     margin-bottom: 15px;
     font-size: 18px;
     font-weight: 600;
+    color: var(--text-0);
 }
 
 .nova-x-output-container {
@@ -1930,7 +1850,6 @@ html[data-theme="light"] {
     word-wrap: break-word;
 }
 
-
 /* Action Buttons */
 .nova-x-action-buttons {
     display: flex;
@@ -1956,12 +1875,6 @@ html[data-theme="light"] {
     display: inline-block;
     margin-left: 10px;
     vertical-align: middle;
-}
-
-.nova-x-theme-output h3 {
-    color: var(--text-0);
-    font-weight: 500;
-    font-size: 20px;
 }
 
 /* ========================================
@@ -2067,7 +1980,6 @@ html[data-theme="light"] {
 .nova-x-preview-error .dashicons {
     margin-right: 8px;
 }
-
 
 /* ========================================
    Tables
@@ -2269,65 +2181,6 @@ html[data-theme="light"] {
     border-left: 4px solid var(--accent-2);
 }
 
-
-/* Responsive for exported themes */
-@media (max-width: 782px) {
-    .nova-x-theme-actions {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .nova-x-theme-actions .button {
-        width: 100%;
-        justify-content: flex-start;
-    }
-
-    .nova-x-exported-themes-table {
-        font-size: 13px;
-    }
-
-    .nova-x-exported-themes-table th,
-    .nova-x-exported-themes-table td {
-        padding: 8px 10px;
-    }
-}
-
-/* ========================================
-   Responsive Design
-   ======================================== */
-
-@media (max-width: 782px) {
-    .nova-x-tab-wrapper .nav-tab {
-        display: block;
-        margin-bottom: 5px;
-        margin-right: 0;
-        border-bottom: 1px solid var(--border-0);
-        border-radius: 0;
-    }
-
-    .nova-x-tab-wrapper .nav-tab-active {
-        border-bottom-color: var(--border-0);
-        box-shadow: none;
-    }
-
-    .nova-x-tab-content {
-        padding: 15px;
-    }
-
-    .nova-x-usage-widgets {
-        flex-direction: column;
-    }
-
-    .nova-x-widget {
-        min-width: 100%;
-    }
-
-    .nova-x-preview-container iframe {
-        height: 600px !important;
-    }
-}
-
-
 /* ========================================
    Architecture, License, Exports Pages
    ======================================== */
@@ -2407,23 +2260,296 @@ html[data-theme="light"] {
    ======================================== */
 
 #nova-x-wrapper.collapsed .nova-x-sidebar {
-  width: 60px;
+    width: 60px;
 }
+
 #nova-x-wrapper.collapsed .nova-x-main {
-  margin-left: 60px;
+    margin-left: 60px;
 }
 
-/* Legacy toggle button styles removed - use .nova-x-dashboard-layout .nova-x-toggle-btn instead */
+/* ========================================
+   Responsive Design
+   ======================================== */
 
-
-/* Toggle button - legacy support removed, use .nova-x-toggle-btn instead */
-
-/* Sidebar collapsed logic */
-.nova-x-wrapper.collapsed .nova-x-sidebar {
-  width: 60px;
+/* Responsive Spacing Scaling */
+@media (max-width: 768px) {
+    :root {
+        --spacing-base: 16px;
+        --spacing-large: 32px;
+    }
 }
 
-.nova-x-wrapper.collapsed .nova-x-main {
-  margin-left: 60px;
+/* Responsive Header */
+@media (max-width: 782px) {
+    .nova-x-dashboard-layout .nova-x-header-overlay {
+        left: 0 !important;
+        height: auto;
+        min-height: var(--header-height);
+    }
+    
+    .nova-x-dashboard-layout .nova-x-header-bar {
+        flex-direction: row;
+        align-items: center;
+        padding: 12px 15px;
+        height: auto;
+        min-height: var(--header-height);
+    }
+    
+    .nova-x-dashboard-layout .nova-x-header-right {
+        width: auto;
+        justify-content: flex-end;
+        margin-top: 0;
+        gap: 12px;
+        flex-wrap: nowrap;
+    }
+    
+    .nova-x-page-content {
+        margin-top: calc(var(--header-height) + var(--spacing-base));
+        padding: var(--spacing-base);
+    }
+    
+    .nova-x-dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .header-controls {
+        width: auto;
+        justify-content: flex-end;
+        margin-left: 0;
+        margin-top: 0;
+        gap: 12px;
+        flex-wrap: nowrap;
+    }
+    
+    .nova-x-header-logo {
+        height: 24px;
+    }
+    
+    .nova-x-logo-fallback {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+    }
+    
+    .nova-x-dropdown-menu {
+        right: auto;
+        left: 0;
+    }
+    
+    .nova-x-notifications-dropdown .nova-x-dropdown-menu {
+        right: 0;
+        left: auto;
+    }
+    
+    /* Responsive: Collapse sidebar on small screens */
+    .nova-x-dashboard-layout {
+        flex-direction: column;
+    }
+
+    .nova-x-dashboard-layout .nova-x-sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        top: 0;
+        border-right: none;
+        border-bottom: 1px solid var(--border-0);
+        max-height: 200px;
+        overflow-y: auto;
+        transition: max-height 0.2s ease;
+    }
+
+    .nova-x-dashboard-layout .nova-x-sidebar.collapsed {
+        max-height: 60px;
+        overflow: hidden;
+    }
+
+    .nova-x-dashboard-main {
+        margin-left: 0;
+    }
+
+    .nova-x-top-nav {
+        display: block;
+        margin-top: var(--spacing-small);
+    }
+
+    .nova-x-dashboard-layout .nova-x-toggle-btn {
+        display: flex;
+    }
+    
+    /* Reduce section spacing on mobile */
+    .nova-x-section {
+        margin-bottom: 24px;
+        padding: 16px;
+    }
+    
+    .nova-x-tab-pane h2,
+    .nova-x-section h2 {
+        font-size: 20px;
+        margin-bottom: 12px;
+    }
+    
+    .nova-x-tab-pane h3,
+    .nova-x-section h3 {
+        font-size: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .nova-x-tab-wrapper .nav-tab {
+        display: block;
+        margin-bottom: 5px;
+        margin-right: 0;
+        border-bottom: 1px solid var(--border-0);
+        border-radius: 0;
+    }
+
+    .nova-x-tab-wrapper .nav-tab-active {
+        border-bottom-color: var(--border-0);
+        box-shadow: none;
+    }
+
+    .nova-x-tab-content {
+        padding: 15px;
+    }
+
+    .nova-x-usage-widgets {
+        flex-direction: column;
+    }
+
+    .nova-x-widget {
+        min-width: 100%;
+    }
+
+    .nova-x-preview-container iframe {
+        height: 600px !important;
+    }
+    
+    .nova-x-theme-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .nova-x-theme-actions .button {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .nova-x-exported-themes-table {
+        font-size: 13px;
+    }
+
+    .nova-x-exported-themes-table th,
+    .nova-x-exported-themes-table td {
+        padding: 8px 10px;
+    }
+}
+
+@media (max-width: 600px) {
+    .nova-x-dashboard-layout .nova-x-header-bar {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    
+    .nova-x-dashboard-layout .nova-x-header-right {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 8px;
+        gap: 10px;
+    }
+    
+    .nova-x-dashboard-layout .header-controls {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 8px;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .nova-x-dashboard-layout .nova-x-header-bar {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+    
+    .nova-x-dashboard-layout .nova-x-header-right {
+        gap: 8px;
+    }
+    
+    .nova-x-dashboard-layout .header-controls {
+        gap: 8px;
+    }
+    
+    .icon-button {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+        max-width: 36px;
+        max-height: 36px;
+    }
+    
+    .icon-button svg {
+        width: 18px;
+        height: 18px;
+        min-width: 18px;
+        min-height: 18px;
+    }
+    
+    .btn-upgrade {
+        padding: 6px 12px;
+        font-size: 13px;
+        height: 36px;
+        min-height: 36px;
+    }
+    
+    .btn-upgrade svg {
+        width: 18px;
+        height: 18px;
+        min-width: 18px;
+        min-height: 18px;
+    }
+    
+    .nova-x-header-logo {
+        height: 22px;
+    }
+    
+    .nova-x-logo-fallback {
+        font-size: 22px;
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+    }
+    
+    .nova-x-dropdown-menu {
+        min-width: 200px;
+        max-width: calc(100vw - 40px);
+    }
+    
+    .nova-x-sidebar {
+        max-height: 150px;
+    }
+
+    .nova-x-sidebar-link {
+        padding: 10px 15px;
+        font-size: 14px;
+    }
+
+    .nova-x-sidebar-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+    }
+    
+    .nova-x-page-content {
+        padding: var(--spacing-base);
+        margin-top: calc(var(--header-height) + var(--spacing-base));
+    }
+    
+    .nova-x-section {
+        margin-bottom: var(--spacing-base);
+        padding: var(--spacing-small);
+        border-radius: 8px;
+    }
 }
 

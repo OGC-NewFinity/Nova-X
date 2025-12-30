@@ -9,20 +9,54 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// Ensure Nova_X_Notifier class is loaded
+if ( ! class_exists( 'Nova_X_Notifier' ) ) {
+    $notifier_path = NOVA_X_PATH . 'inc/classes/class-nova-x-notifier.php';
+    if ( file_exists( $notifier_path ) ) {
+        require_once $notifier_path;
+    }
+}
+
+/**
+ * Get the logo URL (checks for custom logo first, then falls back to default)
+ * 
+ * @return string Logo URL
+ */
+function nova_x_get_logo_url() {
+    // Check for custom logo in uploads directory
+    $upload_dir = wp_upload_dir();
+    $nova_x_dir = $upload_dir['basedir'] . '/nova-x';
+    
+    // Check for SVG first, then PNG
+    $custom_logo_svg_path = $nova_x_dir . '/custom-logo.svg';
+    $custom_logo_png_path = $nova_x_dir . '/custom-logo.png';
+    
+    if ( file_exists( $custom_logo_svg_path ) ) {
+        return $upload_dir['baseurl'] . '/nova-x/custom-logo.svg';
+    }
+    
+    if ( file_exists( $custom_logo_png_path ) ) {
+        return $upload_dir['baseurl'] . '/nova-x/custom-logo.png';
+    }
+    
+    // Fall back to default logo
+    return plugin_dir_url( NOVA_X_PLUGIN_FILE ) . 'assets/images/logo/nova-x-logo-crystal-primary.png';
+}
+
 /**
  * Render the Nova-X plugin header
  * 
  * @param array $args {
  *     Optional. Array of arguments.
  *     @type int    $notification_count Notification count for badge.
- *     @type string $logo_url           Logo image URL.
+ *     @type string $logo_url           Logo image URL (optional, will use nova_x_get_logo_url() if not provided).
  *     @type string $dashboard_url      Dashboard URL.
  * }
  */
 function render_plugin_header( $args = [] ) {
     $defaults = [
         'notification_count' => 0,
-        'logo_url'          => plugin_dir_url( NOVA_X_PLUGIN_FILE ) . 'assets/images/logo/nova-x-logo-crystal-primary.png',
+        'logo_url'          => nova_x_get_logo_url(),
         'dashboard_url'      => admin_url( 'admin.php?page=nova-x-dashboard' ),
     ];
     
@@ -43,7 +77,15 @@ function render_plugin_header( $args = [] ) {
         <div class="nova-x-header-bar">
             <div class="nova-x-header-left">
                 <a href="<?php echo esc_url( $args['dashboard_url'] ); ?>" class="nova-x-header-logo-link" aria-label="Nova-X Dashboard">
-                    <img src="<?php echo esc_url( $args['logo_url'] ); ?>" alt="Nova-X" class="nova-x-header-logo" />
+                    <img 
+                        src="<?php echo esc_url( $args['logo_url'] ); ?>" 
+                        alt="Nova-X Logo" 
+                        class="nova-x-header-logo" 
+                        width="32" 
+                        height="32"
+                        onerror="this.style.display='none'; document.getElementById('nova-x-logo-fallback').style.display='inline-block';"
+                    />
+                    <span class="dashicons dashicons-admin-appearance nova-x-logo-fallback" id="nova-x-logo-fallback" style="display:none;"></span>
                 </a>
             </div>
             
@@ -123,6 +165,65 @@ function render_plugin_header( $args = [] ) {
                 </svg>
                 <span>Upgrade</span>
             </a>
+            </div>
+        </div>
+    </div>
+    <?php
+}
+
+/**
+ * Wrap page header with standard Nova-X layout
+ * 
+ * @param string $title Page title.
+ * @param array  $args {
+ *     Optional. Array of arguments.
+ *     @type string $subtitle Subtitle text to display below title.
+ * }
+ */
+function nova_x_wrap_header( $title, $args = [] ) {
+    $defaults = [
+        'subtitle' => '',
+    ];
+    
+    $args = wp_parse_args( $args, $defaults );
+    
+    // Get theme preference (default to dark)
+    $theme = get_user_meta( get_current_user_id(), 'nova_x_theme_preference', true );
+    if ( empty( $theme ) ) {
+        $theme = 'dark';
+    }
+    
+    $dashboard_url = admin_url( 'admin.php?page=nova-x-dashboard' );
+    ?>
+    <div class="wrap nova-x-wrapper nova-x-dashboard-wrap" data-theme="<?php echo esc_attr( $theme ); ?>">
+        <div id="nova-x-wrapper" class="nova-x-wrapper">
+            <div class="nova-x-dashboard-layout">
+                <div class="nova-x-dashboard-main nova-x-main" id="nova-x-dashboard-main">
+                    <?php
+                    // Render unified header (fixed overlay)
+                    if ( function_exists( 'render_plugin_header' ) ) {
+                        render_plugin_header( [
+                            'notification_count' => 0,
+                            'dashboard_url'      => $dashboard_url,
+                        ] );
+                    }
+                    ?>
+                    
+                    <div class="nova-x-page-content">
+                        <h1><?php echo esc_html( $title ); ?></h1>
+                        <?php if ( ! empty( $args['subtitle'] ) ) : ?>
+                            <p class="nova-x-muted"><?php echo esc_html( $args['subtitle'] ); ?></p>
+                        <?php endif; ?>
+    <?php
+}
+
+/**
+ * Close page wrapper and footer
+ */
+function nova_x_wrap_footer() {
+    ?>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

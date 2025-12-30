@@ -4,12 +4,17 @@
  * Handles theme architecture and generation
  *
  * @package Nova-X
+ * @deprecated 0.2.0 Use Nova_X_Generator instead. This class is deprecated and will be removed in a future version.
+ * @see Nova_X_Generator
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * @deprecated 0.2.0 Use Nova_X_Generator instead.
+ */
 class Nova_X_Architect {
 
     /**
@@ -49,7 +54,7 @@ class Nova_X_Architect {
 
         // Check if theme folder already exists.
         if ( file_exists( $target_dir ) ) {
-            error_log( 'Nova-X: Theme building failed - Directory already exists for slug ' . $slug );
+            error_log( '[Nova-X] Theme building failed - Directory already exists for slug ' . $slug . ' — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'Theme folder already exists: ' . $slug,
@@ -59,7 +64,7 @@ class Nova_X_Architect {
         // Create theme directory.
         $mkdir_result = wp_mkdir_p( $target_dir );
         if ( ! $mkdir_result ) {
-            error_log( 'Nova-X: Theme building failed - Could not create directory for slug ' . $slug );
+            error_log( '[Nova-X] Theme building failed - Could not create directory for slug ' . $slug . ' — User ID: ' . get_current_user_id() );
             return [
                 'success' => false,
                 'message' => 'Failed to create theme directory. Please check file permissions.',
@@ -107,7 +112,7 @@ Version: 0.1.0
             $written   = file_put_contents( $file_path, $content );
 
             if ( false === $written ) {
-                error_log( 'Nova-X: Theme building failed - Could not write file ' . $filename . ' in ' . $target_dir );
+                error_log( '[Nova-X] Theme building failed - Could not write file: ' . $filename . ' in ' . $target_dir . ' — User ID: ' . get_current_user_id() );
                 return [
                     'success' => false,
                     'message' => 'Failed to create theme file. Please check file permissions.',
