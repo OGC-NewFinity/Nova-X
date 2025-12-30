@@ -116,3 +116,102 @@
     margin: 0;
 }
 
+/* Header Account Menu */
+#nova-x-account-menu {
+    position: absolute;
+    top: 14px;
+    right: 20px;
+    z-index: 999;
+}
+
+.nx-account-btn {
+    background: #5864ff;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 36px;
+    text-align: center;
+    padding: 0;
+    transition: background-color 0.2s ease;
+    user-select: none;
+}
+
+.nx-account-btn:hover {
+    background: #4750d4;
+}
+
+.nx-dropdown {
+    display: none;
+    position: absolute;
+    top: 46px;
+    right: 0;
+    background: #fff;
+    padding: 12px;
+    width: 180px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    z-index: 1000;
+}
+
+.nx-dropdown.visible {
+    display: block;
+}
+
+.nx-dropdown span {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.nx-dropdown span:first-child {
+    color: #1d2327;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.nx-dropdown span:first-child strong {
+    font-weight: 600;
+}
+
+.nx-dropdown span:nth-child(2) {
+    color: #646970;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.nx-dropdown hr {
+    margin: 10px 0;
+    border: none;
+    border-top: 1px solid #ddd;
+}
+
+.nx-dropdown a {
+    display: block;
+    margin-top: 10px;
+    text-decoration: none;
+    color: #222;
+    font-size: 14px;
+    padding: 4px 0;
+    transition: color 0.2s ease;
+}
+
+.nx-dropdown a:hover {
+    color: #2271b1;
+}
+
+.nx-dropdown a#nx-logout-link {
+    color: #d63638;
+}
+
+.nx-dropdown a#nx-logout-link:hover {
+    color: #b32d2e;
+}
+

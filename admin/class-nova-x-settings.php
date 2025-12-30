@@ -160,7 +160,30 @@ class Nova_X_Settings {
         ];
 
         ?>
-        <div class="wrap nova-x-settings-wrap">
+        <div class="wrap nova-x-settings-wrap" style="position: relative;">
+            <div id="nova-x-account-menu">
+                <?php if ( $is_logged_in ) : 
+                    $initials = strtoupper( substr( $_SESSION['nova_x_user']['name'], 0, 1 ) );
+                ?>
+                    <button id="nx-account-toggle" class="nx-account-btn">
+                        <?php echo esc_html( $initials ); ?>
+                    </button>
+                    <div id="nx-account-dropdown" class="nx-dropdown">
+                        <span><strong><?php echo esc_html( $_SESSION['nova_x_user']['name'] ); ?></strong></span>
+                        <span><?php echo esc_html( $_SESSION['nova_x_user']['email'] ); ?></span>
+                        <hr />
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=nova-x-account' ) ); ?>"><?php esc_html_e( 'Account', 'nova-x' ); ?></a>
+                        <a href="#" id="nx-logout-link"><?php esc_html_e( 'Logout', 'nova-x' ); ?></a>
+                    </div>
+                <?php else : ?>
+                    <button id="nx-account-toggle" class="nx-account-btn">☰</button>
+                    <div id="nx-account-dropdown" class="nx-dropdown">
+                        <a href="#nx-login"><?php esc_html_e( 'Login', 'nova-x' ); ?></a>
+                        <a href="#nx-register"><?php esc_html_e( 'Register', 'nova-x' ); ?></a>
+                    </div>
+                <?php endif; ?>
+            </div>
+            
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
             
             <?php settings_errors( 'nova_x_settings' ); ?>

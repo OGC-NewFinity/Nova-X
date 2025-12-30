@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 
-<div id="nova-x-login-container" class="nova-x-auth-form-container">
+<div id="nx-login" class="nova-x-auth-form-container">
     <h2><?php esc_html_e( 'Login', 'nova-x' ); ?></h2>
     
     <div id="nova-x-login-message" class="nova-x-auth-message" style="display: none;"></div>

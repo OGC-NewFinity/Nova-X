@@ -12,8 +12,8 @@
     document.addEventListener('DOMContentLoaded', function() {
         const registerForm = document.getElementById('nova-x-register-form');
         const loginForm = document.getElementById('nova-x-login-form');
-        const registerContainer = document.getElementById('nova-x-register-container');
-        const loginContainer = document.getElementById('nova-x-login-container');
+        const registerContainer = document.getElementById('nx-register');
+        const loginContainer = document.getElementById('nx-login');
         const registerMessage = document.getElementById('nova-x-register-message');
         const loginMessage = document.getElementById('nova-x-login-message');
         const switchToLogin = document.getElementById('switch-to-login');
@@ -169,6 +169,102 @@
                         submitButton.disabled = false;
                         submitButton.textContent = originalText;
                     }
+                }
+            });
+        }
+
+        /**
+         * Handle account menu dropdown toggle
+         */
+        const toggle = document.getElementById('nx-account-toggle');
+        const dropdown = document.getElementById('nx-account-dropdown');
+
+        if (toggle && dropdown) {
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dropdown.classList.toggle('visible');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('visible');
+                }
+            });
+        }
+
+        /**
+         * Handle logout from dropdown
+         */
+        const logoutLink = document.getElementById('nx-logout-link');
+        if (logoutLink) {
+            logoutLink.addEventListener('click', async function(e) {
+                e.preventDefault();
+                
+                try {
+                    const response = await fetch(restUrl + '/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    // Reload page after logout
+                    window.location.reload();
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    // Still reload on error
+                    window.location.reload();
+                }
+            });
+        }
+
+        /**
+         * Handle scroll to login/register forms from dropdown links
+         */
+        const loginLink = document.querySelector('#nx-account-dropdown a[href="#nx-login"]');
+        const registerLink = document.querySelector('#nx-account-dropdown a[href="#nx-register"]');
+
+        if (loginLink) {
+            loginLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                const loginContainer = document.getElementById('nx-login');
+                const registerContainer = document.getElementById('nx-register');
+                
+                // Show login form, hide register
+                if (registerContainer) {
+                    registerContainer.style.display = 'none';
+                }
+                if (loginContainer) {
+                    loginContainer.style.display = 'block';
+                    loginContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                
+                // Close dropdown
+                if (dropdown) {
+                    dropdown.classList.remove('visible');
+                }
+            });
+        }
+
+        if (registerLink) {
+            registerLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                const loginContainer = document.getElementById('nx-login');
+                const registerContainer = document.getElementById('nx-register');
+                
+                // Show register form, hide login
+                if (loginContainer) {
+                    loginContainer.style.display = 'none';
+                }
+                if (registerContainer) {
+                    registerContainer.style.display = 'block';
+                    registerContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                
+                // Close dropdown
+                if (dropdown) {
+                    dropdown.classList.remove('visible');
                 }
             });
         }
