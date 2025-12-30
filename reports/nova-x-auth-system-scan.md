@@ -886,6 +886,15 @@ This scan was **read-only**. No files were modified. The following files were an
 
 ---
 
+🔐 Execution Boundaries
+
+Cursor must never scan, write, or modify any file unless explicitly instructed in the prompt.
+
+All actions must default to read-only mode unless the prompt contains:
+// Permission: MODIFY FILES
+
+Any unauthorized file change or code injection is a violation of Nova-X protocol.
+
 **Report Generated:** Read-only diagnostic scan  
 **Next Steps:** Implement fixes from Task List (Priority 1 first)
 
