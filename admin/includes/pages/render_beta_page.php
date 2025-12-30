@@ -44,3 +44,8 @@ nova_x_wrap_header( 'Beta Tools', [
 <?php
 nova_x_wrap_footer();
 
+// Include auth modal at page level if user is not logged in
+if ( ! Nova_X_Session::is_logged_in() ) {
+    include NOVA_X_PATH . 'admin/partials/nova-x-auth-modal.php';
+}
+

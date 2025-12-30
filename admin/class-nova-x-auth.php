@@ -152,10 +152,8 @@ class Nova_X_Auth {
      * @return WP_REST_Response|WP_Error
      */
     public function handle_login( WP_REST_Request $request ) {
-        // Start session if not already started
-        if ( ! session_id() ) {
-            session_start();
-        }
+        // Ensure session is started
+        Nova_X_Session::start();
 
         // Get and sanitize input
         $email    = sanitize_email( $request->get_param( 'email' ) );
@@ -228,18 +226,8 @@ class Nova_X_Auth {
      * @return WP_REST_Response
      */
     public function handle_logout( WP_REST_Request $request ) {
-        // Start session if not already started
-        if ( ! session_id() ) {
-            session_start();
-        }
-
-        // Unset session data
-        if ( isset( $_SESSION['nova_x_user'] ) ) {
-            unset( $_SESSION['nova_x_user'] );
-        }
-
         // Destroy session
-        session_destroy();
+        Nova_X_Session::destroy();
 
         return new WP_REST_Response(
             [

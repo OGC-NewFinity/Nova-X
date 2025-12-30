@@ -138,6 +138,17 @@ class Nova_X_Admin {
                 [ $this, 'render_test_notifier_page' ]
             );
         }
+
+        // My Account menu (accessible to all logged-in users)
+        add_menu_page(
+            'Nova-X Account',
+            'My Account',
+            'read',
+            'nova-x-account',
+            array( 'Nova_X_Account', 'render_account_page' ),
+            'dashicons-id',
+            26
+        );
     }
 
     /**
@@ -326,6 +337,7 @@ class Nova_X_Admin {
             'nova-x_page_nova-x-exports',
             'nova-x_page_nova-x-beta',
             'nova-x_page_nova-x-test-notifier',
+            'toplevel_page_nova-x-account',
         ];
 
         if ( ! in_array( $hook, $nova_x_pages, true ) ) {
@@ -365,6 +377,24 @@ class Nova_X_Admin {
             [], // No dependencies - pure vanilla JS
             $this->plugin_version,
             true
+        );
+
+        // Enqueue Auth JS for all Nova-X pages (needed for modal in header)
+        wp_enqueue_script(
+            'nova-x-auth',
+            NOVA_X_URL . 'admin/assets/js/nova-x-auth.js',
+            [],
+            $this->plugin_version,
+            true
+        );
+
+        // Localize auth script with REST API URL
+        wp_localize_script(
+            'nova-x-auth',
+            'novaXAuth',
+            [
+                'restUrl' => esc_url_raw( rest_url( 'nova-x/v1' ) ),
+            ]
         );
         
         // Localize script to pass REST API data to JavaScript
@@ -586,6 +616,10 @@ class Nova_X_Admin {
             </div>
         </div>
         <?php
+        // Include auth modal at page level if user is not logged in
+        if ( ! Nova_X_Session::is_logged_in() ) {
+            include NOVA_X_PATH . 'admin/partials/nova-x-auth-modal.php';
+        }
     }
 
     /**
@@ -779,6 +813,10 @@ class Nova_X_Admin {
             </div>
         </div>
         <?php
+        // Include auth modal at page level if user is not logged in
+        if ( ! Nova_X_Session::is_logged_in() ) {
+            include NOVA_X_PATH . 'admin/partials/nova-x-auth-modal.php';
+        }
     }
 
     /**
@@ -829,6 +867,10 @@ class Nova_X_Admin {
             </div>
         </div>
         <?php
+        // Include auth modal at page level if user is not logged in
+        if ( ! Nova_X_Session::is_logged_in() ) {
+            include NOVA_X_PATH . 'admin/partials/nova-x-auth-modal.php';
+        }
     }
 
     /**
@@ -1198,6 +1240,12 @@ class Nova_X_Admin {
                 </div>
             </div>
         </div>
+        <?php
+        // Include auth modal at page level if user is not logged in
+        if ( ! Nova_X_Session::is_logged_in() ) {
+            include NOVA_X_PATH . 'admin/partials/nova-x-auth-modal.php';
+        }
+        ?>
         
         <script type="text/javascript">
         jQuery(document).ready(function($) {

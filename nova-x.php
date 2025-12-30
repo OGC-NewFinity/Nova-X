@@ -70,6 +70,7 @@ final class Nova_X_Core {
         require_once NOVA_X_PATH . 'inc/helpers/helper-functions.php';
         
         // Load Classes (using the lowercase folder 'classes')
+        require_once NOVA_X_PATH . 'inc/classes/class-nova-x-session.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-token-manager.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-provider-rules.php';
         require_once NOVA_X_PATH . 'inc/classes/class-nova-x-provider-manager.php';
@@ -86,6 +87,9 @@ final class Nova_X_Core {
         // Load Authentication class
         require_once NOVA_X_PATH . 'admin/class-nova-x-auth.php';
         
+        // Load Account class
+        require_once NOVA_X_PATH . 'admin/class-nova-x-account.php';
+        
         // Initialize REST API
         new Nova_X_REST();
         
@@ -98,16 +102,9 @@ final class Nova_X_Core {
         // Script enqueuing is also handled in Nova_X_Admin class
         
         // Enable session support for authentication
-        add_action( 'init', [ $this, 'start_session' ] );
-    }
-
-    /**
-     * Start PHP session if not already started
-     */
-    public function start_session() {
-        if ( ! session_id() ) {
-            session_start();
-        }
+        add_action( 'init', function() {
+            Nova_X_Session::start();
+        });
     }
 
     public function enqueue_admin_assets( $hook ) {
