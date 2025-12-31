@@ -434,5 +434,90 @@ class Nova_X_Token_Manager {
 
         return false;
     }
+
+    /**
+     * Validate API key format against provider rules (without saving)
+     *
+     * @param string $provider Provider name.
+     * @param string $api_key  API key to validate.
+     * @return array Validation result with 'valid' (bool), 'message' (string), 'provider_label' (string), and 'rule' (string) if debug mode.
+     */
+    public static function validate_api_key( $provider, $api_key ) {
+        // Sanitize input
+        $provider = sanitize_key( $provider );
+        $api_key  = trim( (string) $api_key );
+        
+        if ( empty( $provider ) ) {
+            return [
+                'valid'   => false,
+                'message' => 'Provider cannot be empty.',
+                'status'  => 'invalid',
+            ];
+        }
+
+        if ( empty( $api_key ) ) {
+            return [
+                'valid'   => false,
+                'message' => 'API key cannot be empty.',
+                'status'  => 'invalid',
+            ];
+        }
+
+        // Reject masked keys (contain bullet points or asterisks)
+        if ( strpos( $api_key, '•' ) !== false || strpos( $api_key, '*' ) !== false ) {
+            return [
+                'valid'   => false,
+                'message' => 'Masked API keys cannot be validated. Please enter the full key.',
+                'status'  => 'invalid',
+            ];
+        }
+
+        // Load Provider Rules class
+        if ( ! class_exists( 'Nova_X_Provider_Rules' ) ) {
+            $rules_path = defined( 'NOVA_X_PATH' ) 
+                ? NOVA_X_PATH . 'inc/classes/class-nova-x-provider-rules.php'
+                : plugin_dir_path( __FILE__ ) . 'class-nova-x-provider-rules.php';
+            require_once $rules_path;
+        }
+
+        // Get provider rule to access regex pattern
+        $rule = Nova_X_Provider_Rules::get_provider_rule( $provider );
+        
+        if ( ! $rule ) {
+            return [
+                'valid'   => false,
+                'message' => sprintf( 'Invalid provider: %s', esc_html( $provider ) ),
+                'status'  => 'invalid',
+            ];
+        }
+
+        // Validate using Provider Rules
+        $validation = Nova_X_Provider_Rules::validate_key( $api_key, $provider );
+        
+        // Prepare response
+        $result = [
+            'valid'          => $validation['valid'],
+            'message'        => $validation['message'],
+            'status'         => $validation['valid'] ? 'valid' : 'invalid',
+            'provider_label' => isset( $rule['label'] ) ? $rule['label'] : ucfirst( $provider ),
+        ];
+
+        // Add debug information if in debug mode
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            $result['rule'] = isset( $rule['regex'] ) ? $rule['regex'] : '';
+            $result['provider'] = $provider;
+            
+            // Log validation attempt
+            error_log( sprintf(
+                '[Nova-X] API Key Validation: Provider=%s, Valid=%s, Rule=%s, KeyLength=%d',
+                $provider,
+                $validation['valid'] ? 'yes' : 'no',
+                isset( $rule['regex'] ) ? $rule['regex'] : 'none',
+                strlen( $api_key )
+            ) );
+        }
+
+        return $result;
+    }
 }
 

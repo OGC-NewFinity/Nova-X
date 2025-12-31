@@ -25,6 +25,18 @@ class Nova_X_REST {
 
         register_rest_route(
             'nova-x/v1',
+            '/validate-key',
+            [
+                'methods'             => 'POST',
+                'callback'            => [ $this, 'validate_api_key' ],
+                'permission_callback' => function () {
+                    return current_user_can( 'manage_options' );
+                },
+            ]
+        );
+
+        register_rest_route(
+            'nova-x/v1',
             '/generate-theme',
             [
                 'methods'             => 'POST',
@@ -89,7 +101,10 @@ class Nova_X_REST {
             [
                 'methods'             => 'POST',
                 'callback'            => [ $this, 'handle_install_theme' ],
-                'permission_callback' => [ $this, 'check_permissions' ],
+                'permission_callback' => function () {
+                    // Check for install_themes capability specifically for theme installation
+                    return current_user_can( 'install_themes' );
+                },
             ]
         );
 
@@ -291,6 +306,66 @@ class Nova_X_REST {
             ],
             200
         );
+    }
+
+    /**
+     * Validate API key format against provider rules (without saving)
+     *
+     * @param WP_REST_Request $request REST request object.
+     * @return WP_REST_Response Response object.
+     */
+    public function validate_api_key( WP_REST_Request $request ) {
+        // Load Token Manager if not already loaded
+        if ( ! class_exists( 'Nova_X_Token_Manager' ) ) {
+            require_once NOVA_X_PATH . 'inc/classes/class-nova-x-token-manager.php';
+        }
+
+        $raw_key = (string) $request->get_param( 'api_key' );
+        $api_key = trim( sanitize_text_field( $raw_key ) );
+
+        // Get provider from request
+        $provider = sanitize_key( $request->get_param( 'provider' ) );
+        if ( empty( $provider ) ) {
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'status'  => 'invalid',
+                    'message' => 'Provider is required.',
+                    'notifier' => [
+                        'type' => 'error',
+                        'message' => 'Provider is required.',
+                    ],
+                ],
+                400
+            );
+        }
+
+        // Validate the API key using Token Manager
+        $validation = Nova_X_Token_Manager::validate_api_key( $provider, $api_key );
+
+        // Prepare response
+        $response_data = [
+            'success'          => $validation['valid'],
+            'status'           => $validation['status'],
+            'message'          => $validation['message'],
+            'provider_label'   => isset( $validation['provider_label'] ) ? $validation['provider_label'] : ucfirst( $provider ),
+            'notifier' => [
+                'type'    => $validation['valid'] ? 'success' : 'error',
+                'message' => $validation['message'],
+            ],
+        ];
+
+        // Add debug info if available
+        if ( isset( $validation['rule'] ) ) {
+            $response_data['rule'] = $validation['rule'];
+        }
+        if ( isset( $validation['provider'] ) ) {
+            $response_data['provider'] = $validation['provider'];
+        }
+
+        $status_code = $validation['valid'] ? 200 : 400;
+
+        return new WP_REST_Response( $response_data, $status_code );
     }
 
     /**
@@ -755,6 +830,22 @@ class Nova_X_REST {
      */
     public function handle_install_theme( WP_REST_Request $request ) {
         $params = $request->get_json_params();
+
+        // Verify user capability (additional check beyond permission_callback)
+        if ( ! current_user_can( 'install_themes' ) ) {
+            error_log( '[Nova-X] REST API security - User lacks install_themes capability for install-theme endpoint — User ID: ' . get_current_user_id() );
+            return new WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => 'You do not have permission to install themes.',
+                    'notifier' => [
+                        'type' => 'error',
+                        'message' => 'You do not have permission to install themes.',
+                    ],
+                ],
+                403
+            );
+        }
 
         // Verify nonce for CSRF protection
         if ( ! isset( $params['nonce'] ) || ! wp_verify_nonce( $params['nonce'], 'nova_x_nonce' ) ) {

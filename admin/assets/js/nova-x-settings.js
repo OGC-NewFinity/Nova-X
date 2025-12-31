@@ -194,6 +194,181 @@
         }
 
         /**
+         * Handle test key button clicks
+         */
+        $(document).on('click', '.test-key-btn', function(e) {
+            e.preventDefault();
+            const $btn = $(this);
+            const provider = $btn.data('provider') || $btn.attr('data-provider');
+            
+            if (!provider) {
+                alert('⚠️ Provider not specified.');
+                return;
+            }
+
+            // Get the API key from the corresponding field
+            const $keyField = $(`input[data-provider="${provider}"]`);
+            const $row = $keyField.closest('tr');
+            const $status = $row.find('.test-key-status');
+            const apiKey = $keyField.length ? $keyField.val().trim() : '';
+
+            // Validate that a key is provided
+            if (!apiKey) {
+                if ($status.length) {
+                    $status.html('❌ Please enter an API key to test.').removeClass('success error').addClass('error');
+                } else {
+                    alert('⚠️ Please enter an API key to test.');
+                }
+                $keyField.focus();
+                return;
+            }
+
+            // Check if key is masked (should not be used)
+            if (isMaskedValue(apiKey)) {
+                if ($status.length) {
+                    $status.html('❌ Please enter a valid, unmasked API key. Masked values cannot be tested.').removeClass('success error').addClass('error');
+                } else {
+                    alert('⚠️ Please enter a valid, unmasked API key. Masked values cannot be tested.');
+                }
+                $keyField.focus();
+                return;
+            }
+
+            // Disable button and show loading
+            $btn.prop('disabled', true);
+            const originalText = $btn.html();
+            $btn.html('⏳ Testing...');
+            
+            if ($status.length) {
+                $status.html('⏳ Testing API key format...').removeClass('error success').addClass('testing');
+            }
+
+            // Check if NovaXData is available
+            const validateUrl = (typeof NovaXData !== 'undefined' && NovaXData.validate_key_url) 
+                ? NovaXData.validate_key_url 
+                : (typeof NovaXData !== 'undefined' && NovaXData.rest_url ? NovaXData.rest_url + 'validate-key' : '');
+            const nonce = (typeof NovaXData !== 'undefined' && NovaXData.nonce) 
+                ? NovaXData.nonce 
+                : '';
+
+            if (!validateUrl || !nonce) {
+                const errorMsg = 'Configuration error. Please refresh the page.';
+                if ($status.length) {
+                    $status.html('❌ ' + errorMsg).removeClass('success testing').addClass('error');
+                } else {
+                    alert('⚠️ ' + errorMsg);
+                }
+                $btn.prop('disabled', false);
+                $btn.html(originalText);
+                return;
+            }
+
+            // Send AJAX request to validate endpoint
+            $.ajax({
+                method: 'POST',
+                url: validateUrl,
+                contentType: 'application/json',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', nonce);
+                },
+                data: JSON.stringify({
+                    provider: provider,
+                    api_key: apiKey
+                }),
+                timeout: 30000,
+            })
+            .done(function(res) {
+                // Handle notifier from response if available
+                if (res.notifier && typeof NovaXNotices !== 'undefined') {
+                    if (res.notifier.type === 'success') {
+                        NovaXNotices.success(res.notifier.message);
+                    } else if (res.notifier.type === 'error') {
+                        NovaXNotices.error(res.notifier.message);
+                    }
+                }
+
+                if (res.success && res.status === 'valid') {
+                    // Success - valid key
+                    const successMsg = res.message || 'API key format is valid.';
+                    if ($status.length) {
+                        $status.html('✅ ' + successMsg);
+                        $status.removeClass('error testing').addClass('success');
+                        // Show green checkmark inline next to the input
+                        $keyField.css('border-color', '#00ffb3');
+                        setTimeout(function() {
+                            $keyField.css('border-color', '');
+                        }, 3000);
+                    }
+                    
+                    // Log to console for debugging
+                    if (typeof console !== 'undefined' && console.log) {
+                        console.log('[Nova-X] API Key Validation:', {
+                            provider: provider,
+                            status: 'valid',
+                            message: res.message,
+                            rule: res.rule || 'N/A'
+                        });
+                    }
+                } else {
+                    // Invalid key
+                    const errorMsg = res.message || 'API key format is invalid.';
+                    if ($status.length) {
+                        $status.html('❌ ' + errorMsg);
+                        $status.removeClass('success testing').addClass('error');
+                        // Show red border on input
+                        $keyField.css('border-color', '#ff4d4f');
+                        setTimeout(function() {
+                            $keyField.css('border-color', '');
+                        }, 3000);
+                    }
+                    
+                    // Log to console for debugging
+                    if (typeof console !== 'undefined' && console.warn) {
+                        console.warn('[Nova-X] API Key Validation:', {
+                            provider: provider,
+                            status: 'invalid',
+                            message: res.message,
+                            rule: res.rule || 'N/A'
+                        });
+                    }
+                }
+            })
+            .fail(function(xhr) {
+                let errorMessage = 'Request failed. Check your network or permissions.';
+                
+                if (xhr.status === 0) {
+                    errorMessage = 'Network error. Please check your connection.';
+                } else if (xhr.status === 403) {
+                    errorMessage = 'Permission denied. Please refresh the page and try again.';
+                } else if (xhr.status === 404) {
+                    errorMessage = 'Validation endpoint not found. Please check plugin configuration.';
+                } else if (xhr.status >= 500) {
+                    errorMessage = 'Server error. Please try again later.';
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.statusText === 'timeout') {
+                    errorMessage = 'Request timed out. Please try again.';
+                }
+                
+                if ($status.length) {
+                    $status.html('❌ ' + errorMessage).removeClass('success testing').addClass('error');
+                } else {
+                    alert('⚠️ ' + errorMessage);
+                }
+                
+                // Log error to console
+                if (typeof console !== 'undefined' && console.error) {
+                    console.error('[Nova-X] API Key Validation Error:', errorMessage, xhr);
+                }
+            })
+            .always(function() {
+                // Re-enable button after request completes
+                $btn.prop('disabled', false);
+                $btn.html('🧪 Test Key');
+            });
+        });
+
+        /**
          * Handle rotate token button clicks (if buttons exist)
          */
         $(document).on('click', '.rotate-token-btn', function(e) {

@@ -15,7 +15,8 @@ class Nova_X_Settings {
      * Constructor
      */
     public function __construct() {
-        add_action( 'admin_menu', [ $this, 'register_settings_menu' ] );
+        // Register settings menu with priority 20 to ensure it runs after parent menu (priority 10 default)
+        add_action( 'admin_menu', [ $this, 'register_settings_menu' ], 20 );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_settings_assets' ] );
     }
 
@@ -23,6 +24,17 @@ class Nova_X_Settings {
      * Register settings menu page as submenu under Nova-X Dashboard
      */
     public function register_settings_menu() {
+        // Safety check: Ensure parent menu exists before registering submenu
+        // This is a failsafe in case hook priorities don't work as expected
+        // Check if the parent menu hook is registered
+        if ( empty( $GLOBALS['admin_page_hooks']['nova-x-dashboard'] ) ) {
+            // Parent menu doesn't exist yet - skip registration (should not happen with priority 20)
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( '[Nova-X Settings] Parent menu not found, skipping submenu registration. This should not happen with proper hook priority.' );
+            }
+            return;
+        }
+        
         add_submenu_page(
             'nova-x-dashboard',                    // Parent slug (matches Nova_X_Admin main menu)
             esc_html__( 'Nova-X Settings', 'nova-x' ), // Page title
@@ -31,6 +43,11 @@ class Nova_X_Settings {
             'nova-x-settings',                     // Menu slug
             [ $this, 'render_settings_page' ]      // Callback
         );
+        
+        // Debug logging
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( '[Nova-X Settings] Menu registered successfully: nova-x-settings under nova-x-dashboard' );
+        }
     }
 
     /**
@@ -114,6 +131,8 @@ class Nova_X_Settings {
                 'nonce'            => wp_create_nonce( 'nova_x_nonce' ),
                 'ajax_url'         => admin_url( 'admin-ajax.php' ),
                 'rotate_token_url' => esc_url_raw( rest_url( 'nova-x/v1/rotate-token' ) ),
+                'validate_key_url' => esc_url_raw( rest_url( 'nova-x/v1/validate-key' ) ),
+                'rest_url'         => esc_url_raw( rest_url( 'nova-x/v1/' ) ),
             ]
         );
     }
@@ -134,6 +153,11 @@ class Nova_X_Settings {
             $this->handle_settings_save();
         }
 
+        // Debug logging: Log that settings page is being rendered
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( '[Nova-X Settings] Rendering settings page. User ID: ' . get_current_user_id() );
+        }
+
         // Check if user is logged in
         $is_logged_in = Nova_X_Session::is_logged_in();
 
@@ -151,6 +175,20 @@ class Nova_X_Settings {
 
         // Get all supported providers
         $supported_providers = Nova_X_Provider_Manager::get_supported_providers();
+        
+        // Debug logging: Log providers and their status
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( '[Nova-X Settings] Loading providers: ' . count( $supported_providers ) . ' providers found' );
+            foreach ( $supported_providers as $provider ) {
+                $status = Nova_X_Provider_Manager::get_provider_status( $provider );
+                error_log( sprintf(
+                    '[Nova-X Settings] Provider: %s, Status: %s, Has Masked Key: %s',
+                    $provider,
+                    $status['status'],
+                    ! empty( $status['masked_key'] ) ? 'yes' : 'no'
+                ) );
+            }
+        }
         
         // Provider display names
         $provider_names = [
@@ -258,12 +296,20 @@ class Nova_X_Settings {
                                                         />
                                                         <button 
                                                             type="button" 
+                                                            class="button test-key-btn" 
+                                                            data-provider="<?php echo esc_attr( $provider ); ?>"
+                                                            title="<?php echo esc_attr( 'Test API key format for ' . $provider_label ); ?>">
+                                                            🧪 Test Key
+                                                        </button>
+                                                        <button 
+                                                            type="button" 
                                                             class="button rotate-token-btn" 
                                                             data-provider="<?php echo esc_attr( $provider ); ?>"
                                                             title="<?php echo esc_attr( 'Rotate token for ' . $provider_label ); ?>">
                                                             🔄 Rotate Token
                                                         </button>
                                                     </div>
+                                                    <span class="test-key-status" style="display: inline-block; margin-left: 0; font-weight: 500; min-height: 20px;"></span>
                                                     <span class="rotate-token-status" style="display: inline-block; margin-left: 0; font-weight: 500; min-height: 20px;"></span>
                                                     <p class="description">
                                                         <?php if ( $status['status'] === 'valid' ) : ?>
@@ -301,11 +347,22 @@ class Nova_X_Settings {
      * Handle settings form submission
      */
     public function handle_settings_save() {
+        // Debug logging: Log form submission attempt
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( '[Nova-X Settings] Form submission detected. User ID: ' . get_current_user_id() );
+        }
+
         if ( ! isset( $_POST['nova_x_settings_nonce'] ) || ! wp_verify_nonce( $_POST['nova_x_settings_nonce'], 'nova_x_settings_save' ) ) {
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( '[Nova-X Settings] Form submission failed: Invalid or missing nonce' );
+            }
             return;
         }
 
         if ( ! current_user_can( 'manage_options' ) ) {
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( '[Nova-X Settings] Form submission failed: User lacks manage_options capability' );
+            }
             return;
         }
 
@@ -314,6 +371,9 @@ class Nova_X_Settings {
 
         // Handle API keys array
         if ( isset( $_POST['nova_x_api_key'] ) && is_array( $_POST['nova_x_api_key'] ) ) {
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( '[Nova-X Settings] Processing ' . count( $_POST['nova_x_api_key'] ) . ' API key entries' );
+            }
             foreach ( $_POST['nova_x_api_key'] as $provider => $api_key_input ) {
                 $provider = sanitize_key( $provider );
                 $api_key  = trim( sanitize_text_field( $api_key_input ) );
@@ -350,6 +410,16 @@ class Nova_X_Settings {
                 // Validate and save the key using Provider Manager
                 $result = Nova_X_Provider_Manager::save_api_key( $provider, $api_key );
                 
+                // Debug logging: Log save attempt result
+                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                    error_log( sprintf(
+                        '[Nova-X Settings] Save attempt for %s: %s - %s',
+                        $provider,
+                        $result['success'] ? 'SUCCESS' : 'FAILED',
+                        isset( $result['message'] ) ? $result['message'] : 'No message'
+                    ) );
+                }
+                
                 if ( $result['success'] ) {
                     $saved_count++;
                 } else {
@@ -372,6 +442,9 @@ class Nova_X_Settings {
                 sprintf( 'Settings saved successfully. %d provider key(s) updated.', $saved_count ),
                 'updated'
             );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( '[Nova-X Settings] Save completed: ' . $saved_count . ' key(s) saved successfully' );
+            }
         } elseif ( $error_count === 0 ) {
             add_settings_error(
                 'nova_x_settings',
@@ -379,6 +452,13 @@ class Nova_X_Settings {
                 'Settings saved successfully. No changes detected.',
                 'updated'
             );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( '[Nova-X Settings] Save completed: No changes detected' );
+            }
+        } else {
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( '[Nova-X Settings] Save completed with errors: ' . $error_count . ' error(s)' );
+            }
         }
     }
 }

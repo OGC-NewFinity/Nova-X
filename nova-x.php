@@ -55,10 +55,7 @@ final class Nova_X_Core {
         // Initialize Admin class if in admin area
         if ( is_admin() ) {
             new Nova_X_Admin( NOVA_X_VERSION );
-            
-            // Initialize Settings class for new multi-provider settings page
-            require_once NOVA_X_PATH . 'admin/class-nova-x-settings.php';
-            new Nova_X_Settings();
+            // Note: Nova_X_Settings is now instantiated within Nova_X_Admin constructor
         }
     }
 

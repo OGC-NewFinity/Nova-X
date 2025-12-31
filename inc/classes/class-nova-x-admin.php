@@ -26,6 +26,13 @@ class Nova_X_Admin {
     private $plugin_version;
 
     /**
+     * Settings instance
+     *
+     * @var Nova_X_Settings
+     */
+    public $settings;
+
+    /**
      * Constructor
      *
      * @param string $version Plugin version.
@@ -34,10 +41,21 @@ class Nova_X_Admin {
         $this->plugin_slug    = 'nova-x';
         $this->plugin_version = $version;
 
+        // Initialize Settings class
+        if ( ! class_exists( 'Nova_X_Settings' ) ) {
+            require_once NOVA_X_PATH . 'admin/class-nova-x-settings.php';
+        }
+        $this->settings = new Nova_X_Settings();
+
         add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
         add_action( 'admin_init', [ $this, 'register_settings' ] );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
         add_action( 'admin_notices', [ $this, 'display_admin_notices' ] );
+
+        // Debug logging
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( '[Nova-X Admin] Nova_X_Admin initialized. Settings instance created: ' . ( $this->settings ? 'yes' : 'no' ) );
+        }
     }
 
     /**

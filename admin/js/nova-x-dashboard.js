@@ -445,13 +445,187 @@
 
             // Handle install button
             $installBtn.on('click', function () {
+                const themeCode = $outputContainer.data('theme-code');
+                const themeTitle = $outputContainer.data('theme-title') || 'Nova-X Theme';
+                
+                if (!themeCode) {
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.error('No theme code available. Please generate a theme first.');
+                    } else {
+                        NovaXDashboard.showStatus($actionStatus, '❌ No theme code available. Please generate a theme first.', 'error');
+                    }
+                    return;
+                }
+
                 if (!confirm('Are you sure you want to install this theme? This will activate it immediately.')) {
                     return;
                 }
 
+                const $btn = $(this);
+                
+                // Disable button and show loader
+                $btn.prop('disabled', true);
                 NovaXDashboard.showStatus($actionStatus, '⏳ Installing theme...', 'loading');
-                // TODO: Implement install functionality
-                NovaXDashboard.showStatus($actionStatus, '✅ Install feature coming soon.', 'success');
+                
+                // Log install attempt for debugging
+                console.log('[Nova-X] Install theme started:', {
+                    themeTitle: themeTitle,
+                    hasThemeCode: !!themeCode,
+                    themeCodeLength: themeCode ? themeCode.length : 0
+                });
+
+                // First, export the theme to create a ZIP file
+                $.ajax({
+                    method: 'POST',
+                    url: novaXDashboard.restUrl + 'export-theme',
+                    contentType: 'application/json',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-WP-Nonce', novaXDashboard.nonce);
+                    },
+                    data: JSON.stringify({
+                        site_title: themeTitle,
+                        code: themeCode,
+                        nonce: novaXDashboard.generateNonce || novaXDashboard.nonce,
+                    }),
+                    timeout: 60000,
+                })
+                .done(function(exportRes) {
+                    // Handle notifier from export response
+                    NovaXDashboard.handleNotifier(exportRes, $actionStatus);
+                    
+                    if (exportRes.success && exportRes.download_url) {
+                        const zipUrl = exportRes.download_url;
+                        
+                        // Log export success
+                        console.log('[Nova-X] Theme exported successfully for install:', {
+                            zipUrl: zipUrl,
+                            filename: exportRes.filename || 'unknown'
+                        });
+                        
+                        // Now install from the ZIP URL
+                        $.ajax({
+                            method: 'POST',
+                            url: novaXDashboard.restUrl + 'install-theme',
+                            contentType: 'application/json',
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader('X-WP-Nonce', novaXDashboard.nonce);
+                            },
+                            data: JSON.stringify({
+                                zip_url: zipUrl,
+                                nonce: novaXDashboard.generateNonce || novaXDashboard.nonce,
+                            }),
+                            timeout: 120000, // Longer timeout for installation
+                        })
+                        .done(function(installRes) {
+                            // Handle notifier from response
+                            NovaXDashboard.handleNotifier(installRes, $actionStatus);
+                            
+                            if (installRes.success) {
+                                // Log install success
+                                console.log('[Nova-X] Theme installed successfully:', {
+                                    themeSlug: installRes.theme_slug || 'unknown',
+                                    themeName: installRes.theme_name || 'unknown',
+                                    message: installRes.message || ''
+                                });
+                                
+                                if (!installRes.notifier) {
+                                    NovaXDashboard.showStatus($actionStatus, '✅ Theme installed and activated successfully!', 'success');
+                                }
+                                
+                                // Reload page after delay to show the new theme
+                                setTimeout(function() {
+                                    location.reload();
+                                }, 2000);
+                            } else {
+                                // Log install failure
+                                console.error('[Nova-X] Theme installation failed:', {
+                                    message: installRes.message || 'Unknown error',
+                                    response: installRes
+                                });
+                                
+                                if (!installRes.notifier) {
+                                    NovaXDashboard.showStatus($actionStatus, '❌ ' + (installRes.message || 'Installation failed'), 'error');
+                                }
+                                $btn.prop('disabled', false);
+                            }
+                        })
+                        .fail(function(xhr) {
+                            let errorMessage = 'Installation request failed.';
+                            
+                            if (xhr.status === 0) {
+                                errorMessage = 'Network error. Please check your connection.';
+                            } else if (xhr.status === 403) {
+                                errorMessage = 'Permission denied. Please refresh the page.';
+                            } else if (xhr.status === 404) {
+                                errorMessage = 'Install endpoint not found.';
+                            } else if (xhr.status >= 500) {
+                                errorMessage = 'Server error. Please try again later.';
+                            } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            } else if (xhr.statusText === 'timeout') {
+                                errorMessage = 'Request timed out. Please try again.';
+                            }
+                            
+                            // Log install request failure
+                            console.error('[Nova-X] Theme installation request failed:', {
+                                status: xhr.status,
+                                statusText: xhr.statusText,
+                                errorMessage: errorMessage,
+                                response: xhr.responseJSON
+                            });
+                            
+                            if (typeof NovaXNotices !== 'undefined') {
+                                NovaXNotices.error(errorMessage);
+                            } else {
+                                NovaXDashboard.showStatus($actionStatus, '❌ ' + errorMessage, 'error');
+                            }
+                            $btn.prop('disabled', false);
+                        });
+                    } else {
+                        // Export failed
+                        console.error('[Nova-X] Theme export failed before install:', {
+                            message: exportRes.message || 'Unknown error',
+                            response: exportRes
+                        });
+                        
+                        if (!exportRes.notifier) {
+                            NovaXDashboard.showStatus($actionStatus, '❌ Export failed: ' + (exportRes.message || 'Unable to export theme'), 'error');
+                        }
+                        $btn.prop('disabled', false);
+                    }
+                })
+                .fail(function(xhr) {
+                    let errorMessage = 'Export request failed. Cannot install without export.';
+                    
+                    if (xhr.status === 0) {
+                        errorMessage = 'Network error. Please check your connection.';
+                    } else if (xhr.status === 403) {
+                        errorMessage = 'Permission denied. Please refresh the page.';
+                    } else if (xhr.status === 404) {
+                        errorMessage = 'Export endpoint not found.';
+                    } else if (xhr.status >= 500) {
+                        errorMessage = 'Server error. Please try again later.';
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.statusText === 'timeout') {
+                        errorMessage = 'Request timed out. Please try again.';
+                    }
+                    
+                    // Log export request failure
+                    console.error('[Nova-X] Theme export request failed:', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        errorMessage: errorMessage,
+                        response: xhr.responseJSON
+                    });
+                    
+                    if (typeof NovaXNotices !== 'undefined') {
+                        NovaXNotices.error(errorMessage);
+                    } else {
+                        NovaXDashboard.showStatus($actionStatus, '❌ ' + errorMessage, 'error');
+                    }
+                    $btn.prop('disabled', false);
+                });
             });
         },
 

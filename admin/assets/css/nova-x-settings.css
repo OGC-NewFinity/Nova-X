@@ -76,6 +76,42 @@
     color: #646970;
 }
 
+/* Test Key Button Styles */
+.test-key-btn {
+    white-space: nowrap;
+}
+
+.test-key-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.test-key-btn .spinner {
+    display: inline-block;
+    margin-right: 5px;
+}
+
+/* Test Key Status */
+.test-key-status {
+    display: inline-block;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    font-size: 13px;
+    min-height: 20px;
+}
+
+.test-key-status.testing {
+    color: #5864ff;
+}
+
+.test-key-status.success {
+    color: #00ffb3;
+}
+
+.test-key-status.error {
+    color: #ff4d4f;
+}
+
 /* Rotate Token Button Styles */
 .rotate-token-btn {
     white-space: nowrap;
@@ -143,6 +179,7 @@
         align-items: stretch;
     }
 
+    .test-key-btn,
     .rotate-token-btn {
         width: 100%;
     }
